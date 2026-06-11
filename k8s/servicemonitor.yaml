@@ -1,0 +1,24 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: spring-petclinic-monitor
+  namespace: monitoring
+  labels:
+    # IMPORTANTE: Esta etiqueta le dice a Prometheus que este monitor le pertenece a él.
+    # Debe coincidir con el nombre que le diste al instalar helm (ej. release: prom)
+    release: prometheus
+spec:
+  # 1. ¿En qué namespace está tu aplicación?
+  namespaceSelector:
+    matchNames:
+      - default
+  # 2. ¿Cómo se llama el Service de tu aplicación? (Revisa el label 'app' de tu service.yaml)
+  selector:
+    matchLabels:
+      app: spring-petclinic # Asegúrate de que esto coincida con tu Service
+  # 3. ¿Dónde debe buscar las métricas?
+  endpoints:
+    - port: http # Debe coincidir con el NOMBRE del puerto en tu service.yaml (ej. name: http)
+      path: /actuator/prometheus
+      interval: 15s
+      

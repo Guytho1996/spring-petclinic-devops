@@ -1,0 +1,65 @@
+---
+# 1. EL SERVICIO: Abre la puerta de red para la Petclinic
+apiVersion: v1
+kind: Service
+metadata:
+  name: spring-petclinic-service
+  labels:
+    app: petclinic
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8080
+      targetPort: 8080
+      name: http-metrics # Nombre clave para que Prometheus lo encuentre
+  selector:
+    app: petclinic
+
+---
+# 2. EL SERVICEMONITOR: El "puente" automático hacia Prometheus
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: petclinic-monitor
+  labels:
+    release: prometheus # Esta etiqueta conecta con tu instalación de Helm
+spec:
+  selector:
+    matchLabels:
+      app: petclinic
+  endpoints:
+    - port: http-metrics
+      path: '/actuator/prometheus'
+      interval: 15s
+
+---
+# 3. LA ALERTA (Rúbrica: Al menos 1 alerta configurada y SLO)
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: petclinic-alerts
+  labels:
+    release: prometheus
+spec:
+  groups:
+    - name: petclinic.rules
+      rules:
+        # Alerta 1: Falla del SLO de Disponibilidad (Caída total)
+        - alert: PetclinicDisponibilidadCritica
+          expr: up{job="spring-petclinic-service"} == 0
+          for: 1m
+          labels:
+            severity: critical
+          annotations:
+            summary: "ALERTA SLO: Petclinic está CAÍDA"
+            description: "No hay instancias de Petclinic respondiendo (0% availability). Falla crítica del SLO del 99.9%."
+        
+        # Alerta 2: Prevención de saturación (CPU alto)
+        - alert: PetclinicCPUAlto
+          expr: sum(rate(container_cpu_usage_seconds_total{container="petclinic-app"}[2m])) by (pod) > 0.80
+          for: 2m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Uso de CPU muy alto detectado"
+            description: "El pod {{ $labels.pod }} está consumiendo más del 80% de CPU. El HPA debería escalar pronto."

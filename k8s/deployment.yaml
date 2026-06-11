@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spring-petclinic
+  namespace: default
+  labels:
+    app: spring-petclinic
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: spring-petclinic
+  template:
+    metadata:
+      labels:
+        app: spring-petclinic
+    spec:
+      containers:
+        - name: spring-petclinic
+          image: spring-petclinic:v2
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8080
+          # ============================================
+          # READINESS PROBE - ¿Está listo para recibir tráfico?
+          # ============================================
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8080
+            initialDelaySeconds: 30   # Espera 30s antes de verificar
+            periodSeconds: 10          # Verifica cada 10s
+            timeoutSeconds: 5          # Tiempo máximo de espera
+            failureThreshold: 3        # 3 fallos = no listo
+          # ============================================
+          # LIVENESS PROBE - ¿Está vivo el pod?
+          # ============================================
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+            initialDelaySeconds: 60   # Espera 60s antes de verificar
+            periodSeconds: 20          # Verifica cada 20s
+            timeoutSeconds: 5
+            failureThreshold: 3        # 3 fallos = reiniciar pod
+          # ============================================
+          # RECURSOS (necesarios para HPA)
+          # ============================================
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "500m"

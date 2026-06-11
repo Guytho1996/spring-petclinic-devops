@@ -1,0 +1,117 @@
+# 1. CONFIGMAP: Para variables de entorno no sensibles
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: petclinic-config
+data:
+  SPRING_PROFILES_ACTIVE: "postgres"
+  SERVER_PORT: "8080"
+
+---
+# 2. SECRET: Para credenciales (Normalmente se inyectan en CI/CD, aquí ponemos un base64 de ejemplo)
+# Nota: La rúbrica pide "Secrets". El valor en base64 de abajo es "jdbc:postgresql://..." dummy.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: petclinic-secret
+type: Opaque
+data:
+  DB_URL: amRiYzlwb3N0Z3Jlc3FsOi8vYmFzZS1kZS1kYXRvczo1NDMyL3BldGNsaW5pYw==
+
+---
+# 3. DEPLOYMENT: El motor principal (Rolling updates, Probes, Limits)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spring-petclinic
+  labels:
+    app: petclinic
+spec:
+  replicas: 2 # Iniciamos con el mínimo que pide tu HPA
+  selector:
+    matchLabels:
+      app: petclinic
+  # ROLLING UPDATE STRATEGY
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1       # Crea máximo 1 pod extra durante la actualización
+      maxUnavailable: 0 # Nunca te quedas con menos pods de los deseados
+  template:
+    metadata:
+      labels:
+        app: petclinic
+    spec:
+      containers:
+        - name: petclinic-app
+          # Reemplazarás esto con la URL real de tu ECR más adelante
+          image: tu-cuenta.dkr.ecr.us-east-1.amazonaws.com/spring-petclinic-repo-dev:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+          # CONFIGMAP Y SECRETS INYECTADOS
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              valueFrom:
+                configMapKeyRef:
+                  name: petclinic-config
+                  key: SPRING_PROFILES_ACTIVE
+            - name: SPRING_DATASOURCE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: petclinic-secret
+                  key: DB_URL
+          # RESOURCE LIMITS Y REQUESTS
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              cpu: "500m"
+              memory: "1Gi"
+          # READINESS & LIVENESS PROBES (Usando Spring Boot Actuator)
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+
+---
+# 4. HORIZONTAL POD AUTOSCALER (HPA): Escalado automático (Min 2, Max 10)
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: petclinic-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: spring-petclinic
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 75 # Si el CPU pasa del 75%, crea más réplicas
+
+---
+# 5. POD DISRUPTION BUDGET (PDB): Protección contra caídas masivas en nodos
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: petclinic-pdb
+spec:
+  minAvailable: 1 # Garantiza que siempre, al menos 1 pod esté vivo durante mantenimientos del clúster
+  selector:
+    matchLabels:
+      app: petclinic

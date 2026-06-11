@@ -1,0 +1,28 @@
+# --- Archivos de Java / Maven ---
+target/
+*.class
+*.jar
+*.war
+.settings/
+.classpath
+.project
+
+# --- Archivos de IntelliJ IDEA (o tu IDE) ---
+.idea/
+*.iml
+.vscode/
+
+# --- Terraform (ESTO ES VITAL) ---
+.terraform/
+.terraform.lock.hcl
+terraform.tfstate
+terraform.tfstate.backup
+*.tfvars
+
+# --- Archivos de Sistema ---
+.DS_Store
+Thumbs.db
+
+# --- Logs y archivos temporales ---
+*.log
+*.tmp
