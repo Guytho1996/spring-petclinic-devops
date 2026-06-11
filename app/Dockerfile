@@ -1,15 +1,20 @@
 # ==========================================
-# Etapa 2: Producción (Runner)
+# Etapa 1: Construcción
 # ==========================================
-# Forzamos explícitamente una imagen de Ubuntu 22.04 LTS (Jammy)
+FROM maven:3.9-eclipse-temurin-21 AS builder
+WORKDIR /app
+COPY pom.xml .
+COPY src ./src
+RUN mvn clean package -DskipTests
+
+# ==========================================
+# Etapa 2: Producción
+# ==========================================
 FROM eclipse-temurin:21-jre-jammy
 WORKDIR /app
 
-# Copiamos el .jar generado en la etapa anterior
+# Usamos la referencia exacta al alias definido arriba
 COPY --from=builder /app/target/*.jar app.jar
 
-# Exponemos el puerto
 EXPOSE 8080
-
-# Comando de arranque
 ENTRYPOINT ["java", "-jar", "app.jar"]
