@@ -51,7 +51,7 @@ jobs:
           REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          docker build -t $REGISTRY/${{ env.ECR_REPOSITORY }}:$IMAGE_TAG ./app
+          docker build --no-cache -t $REGISTRY/${{ env.ECR_REPOSITORY }}:$IMAGE_TAG ./app
 
       # 5. ESCANEO DEVSECOPS (Trivy)
       - name: Scan Docker Image with Trivy
