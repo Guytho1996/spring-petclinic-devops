@@ -16,7 +16,7 @@ WORKDIR /app
 # Usamos la referencia exacta al alias definido arriba
 # Esto copiará específicamente el archivo "gordo" que pesa 53MB
 COPY --from=builder /app/target/spring-petclinic-devops-0.0.1-SNAPSHOT.jar app.jar
-RUN ls -l /app.jar
+
 
 
 ENTRYPOINT ["java", "-jar", "app.jar"]
