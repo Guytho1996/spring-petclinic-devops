@@ -14,8 +14,9 @@ FROM eclipse-temurin:21-jre-jammy
 WORKDIR /app
 
 # Usamos la referencia exacta al alias definido arriba
-COPY --from=builder /app/target/spring-petclinic-*.jar app.jar
-RUN mv app.jar app.jar || echo "Renombrado exitoso"
+# Esto copiará específicamente el archivo "gordo" que pesa 53MB
+COPY --from=builder /app/target/spring-petclinic-devops-0.0.1-SNAPSHOT.jar app.jar
+RUN ls -l /app.jar"
 
-EXPOSE 8080
+
 ENTRYPOINT ["java", "-jar", "app.jar"]
