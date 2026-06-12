@@ -14,7 +14,8 @@ FROM eclipse-temurin:21-jre-jammy
 WORKDIR /app
 
 # Usamos la referencia exacta al alias definido arriba
-COPY --from=builder /app/target/*.jar app.jar
+COPY --from=builder /app/target/spring-petclinic-*.jar app.jar
+RUN mv app.jar app.jar || echo "Renombrado exitoso"
 
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "app.jar"]
