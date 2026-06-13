@@ -17,20 +17,47 @@ services:
       - postgres-data:/var/lib/postgresql/data
 
   app:
+    image: spring-petclinic-devops-backend
     build:
       context: .
     restart: unless-stopped
     env_file:
       - path: ${PETCLINIC_ENV_FILE:-/home/azureuser/.spring-petclinic-devops-dev.env}
         required: false
-    ports:
-      - "8080:8080"
+    expose:
+      - "8080"
+    networks:
+      default:
+        aliases:
+          - petclinic-backend
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health | grep -q '\"status\":\"UP\"'"]
       interval: 10s
       timeout: 5s
       retries: 12
       start_period: 30s
+
+  frontend:
+    image: spring-petclinic-devops-frontend
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    restart: unless-stopped
+    environment:
+      FRONTEND_APP_ENV: ${FRONTEND_APP_ENV:-development}
+      FRONTEND_BACKEND_BASE_URL: ${FRONTEND_BACKEND_BASE_URL:-same-origin}
+      FRONTEND_GIT_SHA: ${GITHUB_SHA:-local}
+    depends_on:
+      app:
+        condition: service_healthy
+    ports:
+      - "${FRONTEND_PORT:-8080}:80"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/healthz | grep -q ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
 
 volumes:
   postgres-data:

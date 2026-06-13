@@ -3,8 +3,6 @@ kind: Ingress
 metadata:
   name: petclinic-ingress
   namespace: devops-lab
-  annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /
 spec:
   rules:
   - host: petclinic.local
@@ -14,6 +12,6 @@ spec:
         pathType: Prefix
         backend:
           service:
-            name: petclinic
+            name: petclinic-frontend
             port:
               number: 80

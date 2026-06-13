@@ -1,19 +1,19 @@
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: petclinic-backend-hpa
+  name: petclinic-frontend-hpa
   namespace: devops-lab
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: petclinic-backend
+    name: petclinic-frontend
   minReplicas: 2
-  maxReplicas: 6
+  maxReplicas: 10
   metrics:
   - type: Resource
     resource:
       name: cpu
       target:
         type: Utilization
-        averageUtilization: 70
+        averageUtilization: 60

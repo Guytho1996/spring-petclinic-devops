@@ -1,11 +1,11 @@
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
-  name: petclinic-backend-pdb
+  name: petclinic-frontend-pdb
   namespace: devops-lab
 spec:
   minAvailable: 1
   selector:
     matchLabels:
       app: petclinic
-      component: backend
+      component: frontend

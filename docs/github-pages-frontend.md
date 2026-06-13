@@ -23,3 +23,28 @@ apply the custom domain in the repository Pages settings.
 The Pages frontend can only call public HTTPS endpoints. The backend should be
 published behind an Ingress or reverse proxy and should allow the Pages origin in
 CORS when browser calls to `/actuator/health` or future JSON APIs are required.
+
+## Containerized Frontend
+
+The same static frontend can also run as a separate Nginx container:
+
+- `app`: Spring Boot backend container, internal on port `8080`
+- `frontend`: Nginx container, public on port `8080` by default
+
+Docker Compose publishes only the frontend. Nginx serves the static files and
+proxies backend paths such as `/actuator`, `/owners`, and `/vets` to the internal
+`petclinic-backend` service. This keeps the JVM backend off the public Docker
+port while preserving the existing Petclinic routes.
+
+In Kubernetes, the frontend and backend have separate Deployments, Services,
+HPAs, and PDBs:
+
+- `petclinic-frontend`: Nginx static frontend, scales up to 10 replicas
+- `petclinic-backend`: Spring Boot API/app, scales up to 6 replicas
+- `petclinic-ingress`: routes public traffic to the frontend service
+
+The frontend container uses runtime variables:
+
+- `FRONTEND_APP_ENV`
+- `FRONTEND_BACKEND_BASE_URL`, default `same-origin`
+- `FRONTEND_GIT_SHA`

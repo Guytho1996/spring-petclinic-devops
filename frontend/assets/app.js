@@ -2,6 +2,7 @@
   "use strict";
 
   const config = window.PETCLINIC_CONFIG || {};
+  const backendMode = config.backendBaseUrl === "same-origin" ? "same-origin" : "external";
   const backendBaseUrl = normalizeUrl(config.backendBaseUrl);
   const environment = config.environment || "production";
   const gitSha = config.gitSha || "";
@@ -29,10 +30,11 @@
   if (backendBaseUrl) {
     const healthUrl = backendBaseUrl + "/actuator/health";
     const ownersUrl = backendBaseUrl + "/owners/find";
+    const appUrl = backendMode === "same-origin" ? ownersUrl : backendBaseUrl;
 
-    setLink(elements.backendLink, backendBaseUrl);
+    setLink(elements.backendLink, appUrl);
     setLink(elements.healthLink, healthUrl);
-    setLink(elements.openApp, backendBaseUrl);
+    setLink(elements.openApp, appUrl);
     setLink(elements.findOwners, ownersUrl);
     elements.backendHost.textContent = new URL(backendBaseUrl).host;
     checkHealth(healthUrl);
@@ -52,6 +54,9 @@
   function normalizeUrl(value) {
     if (!value || typeof value !== "string") {
       return "";
+    }
+    if (value === "same-origin") {
+      return window.location.origin;
     }
     try {
       const parsed = new URL(value);

@@ -1,17 +1,17 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: petclinic-backend
+  name: petclinic-frontend
   namespace: devops-lab
   labels:
     app: petclinic
-    component: backend
+    component: frontend
 spec:
   replicas: 2
   selector:
     matchLabels:
       app: petclinic
-      component: backend
+      component: frontend
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -21,37 +21,38 @@ spec:
     metadata:
       labels:
         app: petclinic
-        component: backend
+        component: frontend
         version: "IMAGE_TAG"
     spec:
       containers:
-      - name: backend
-        image: ghcr.io/guytho1996/spring-petclinic-devops:IMAGE_TAG
+      - name: frontend
+        image: ghcr.io/guytho1996/spring-petclinic-devops-frontend:IMAGE_TAG
         imagePullPolicy: IfNotPresent
         ports:
-        - containerPort: 8080
+        - containerPort: 80
           name: http
         resources:
           limits:
-            cpu: "500m"
-            memory: "512Mi"
+            cpu: "200m"
+            memory: "128Mi"
           requests:
-            cpu: "250m"
-            memory: "256Mi"
+            cpu: "50m"
+            memory: "64Mi"
         livenessProbe:
           httpGet:
-            path: /actuator/health/liveness
-            port: 8080
-          initialDelaySeconds: 30
+            path: /healthz
+            port: 80
+          initialDelaySeconds: 10
           periodSeconds: 10
         readinessProbe:
           httpGet:
-            path: /actuator/health/readiness
-            port: 8080
-          initialDelaySeconds: 30
+            path: /
+            port: 80
+          initialDelaySeconds: 5
           periodSeconds: 10
+        env:
+        - name: FRONTEND_GIT_SHA
+          value: "IMAGE_TAG"
         envFrom:
         - configMapRef:
             name: petclinic-config
-        - secretRef:
-            name: petclinic-secrets
