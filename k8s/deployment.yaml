@@ -23,7 +23,7 @@ spec:
     spec:
       containers:
       - name: petclinic
-        image: ghcr.io/TU_USUARIO/spring-petclinic-devops:IMAGE_TAG
+        image: ghcr.io/Antho-321/spring-petclinic-devops:IMAGE_TAG
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 8080

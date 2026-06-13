@@ -31,3 +31,10 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Local secrets and runtime env files ###
+.env
+.env.*
+*.env
+*.local
+k8s/*secret*.local.yaml

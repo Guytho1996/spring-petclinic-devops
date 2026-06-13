@@ -6,4 +6,4 @@ metadata:
 data:
   SPRING_PROFILES_ACTIVE: "postgres"
   database: "postgres"
-  POSTGRES_URL: "jdbc:postgresql://postgres-service.devops-lab.svc.cluster.local:5432/petclinic"
+  POSTGRES_URL: "jdbc:postgresql://petclinic-dev-pg-20260613.postgres.database.azure.com:5432/petclinic_dev?sslmode=require"
