@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Petclinic Frontend</title>
+    <link rel="icon" href="./assets/favicon.png">
+    <link rel="stylesheet" href="./assets/site.css">
+  </head>
+  <body>
+    <header class="topbar" aria-label="Petclinic">
+      <a class="brand" href="./">
+        <img src="./assets/pets.png" alt="" width="96" height="68">
+        <span>
+          <strong>Spring Petclinic</strong>
+          <small>Frontend estatico</small>
+        </span>
+      </a>
+      <nav aria-label="Acciones principales">
+        <a class="nav-link" id="backend-link" href="#" aria-disabled="true">Backend</a>
+        <a class="nav-link" id="health-link" href="#" aria-disabled="true">Health</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="status-band" aria-labelledby="status-title">
+        <div class="status-copy">
+          <p class="eyebrow">GitHub Pages</p>
+          <h1 id="status-title">Petclinic UI</h1>
+          <p>
+            Capa web estatica para el entorno publicado. El backend Spring Boot se mantiene
+            separado y se consume por URL publica.
+          </p>
+        </div>
+        <div class="status-panel" aria-live="polite">
+          <span class="status-dot" id="status-dot"></span>
+          <span>
+            <strong id="status-label">Verificando backend</strong>
+            <small id="status-detail">Esperando configuracion</small>
+          </span>
+        </div>
+      </section>
+
+      <section class="grid" aria-label="Estado del despliegue">
+        <article class="tile">
+          <span class="tile-label">Frontend</span>
+          <strong>GitHub Pages</strong>
+          <p id="frontend-url">Publicado desde artifact estatico.</p>
+        </article>
+        <article class="tile">
+          <span class="tile-label">Backend</span>
+          <strong id="backend-host">Sin URL configurada</strong>
+          <p>Spring Boot, Docker Compose y base de datos remota.</p>
+        </article>
+        <article class="tile">
+          <span class="tile-label">Entorno</span>
+          <strong id="environment-label">production</strong>
+          <p id="build-label">Build pendiente de publicar.</p>
+        </article>
+      </section>
+
+      <section class="actions-band" aria-label="Navegacion de la aplicacion">
+        <a class="command primary" id="open-app" href="#" aria-disabled="true">Abrir Petclinic</a>
+        <a class="command" id="find-owners" href="#" aria-disabled="true">Buscar propietarios</a>
+        <button class="command ghost" id="refresh-health" type="button">Actualizar health</button>
+      </section>
+    </main>
+
+    <script src="./config.js"></script>
+    <script src="./assets/app.js"></script>
+  </body>
+</html>

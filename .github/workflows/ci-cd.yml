@@ -3,8 +3,18 @@ name: CI/CD Pipeline
 on:
   push:
     branches: [ main, master, develop ]
+    paths-ignore:
+      - 'frontend/**'
+      - 'docs/github-pages-frontend.md'
+      - 'scripts/build-pages-frontend.sh'
+      - '.github/workflows/pages.yml'
   pull_request:
     branches: [ main, master ]
+    paths-ignore:
+      - 'frontend/**'
+      - 'docs/github-pages-frontend.md'
+      - 'scripts/build-pages-frontend.sh'
+      - '.github/workflows/pages.yml'
   workflow_dispatch:
     inputs:
       deploy_production:
@@ -185,6 +195,7 @@ jobs:
           DEV_POSTGRES_URL: ${{ secrets.DEV_POSTGRES_URL }}
           DEV_POSTGRES_USER: ${{ secrets.DEV_POSTGRES_USER }}
           DEV_POSTGRES_PASS: ${{ secrets.DEV_POSTGRES_PASS }}
+          DEV_APP_CORS_ALLOWED_ORIGINS: ${{ secrets.DEV_APP_CORS_ALLOWED_ORIGINS || vars.PAGES_FRONTEND_ORIGIN || 'https://guytho1996.github.io' }}
         run: |
           set -euo pipefail
           port="${DEV_DEPLOY_PORT:-22}"
@@ -194,6 +205,7 @@ jobs:
             printf 'POSTGRES_URL=%s\n' "$DEV_POSTGRES_URL"
             printf 'POSTGRES_USER=%s\n' "$DEV_POSTGRES_USER"
             printf 'POSTGRES_PASS=%s\n' "$DEV_POSTGRES_PASS"
+            printf 'APP_CORS_ALLOWED_ORIGINS=%s\n' "$DEV_APP_CORS_ALLOWED_ORIGINS"
           } > "$env_file"
           chmod 600 "$env_file"
           scp -i ~/.ssh/petclinic-dev -P "$port" "$env_file" "$DEV_DEPLOY_USER@$DEV_DEPLOY_HOST:/tmp/spring-petclinic-dev.env"
@@ -278,6 +290,7 @@ jobs:
           PROD_POSTGRES_URL: ${{ secrets.PROD_POSTGRES_URL }}
           PROD_POSTGRES_USER: ${{ secrets.PROD_POSTGRES_USER }}
           PROD_POSTGRES_PASS: ${{ secrets.PROD_POSTGRES_PASS }}
+          PROD_APP_CORS_ALLOWED_ORIGINS: ${{ secrets.PROD_APP_CORS_ALLOWED_ORIGINS || vars.PAGES_FRONTEND_ORIGIN || 'https://guytho1996.github.io' }}
         run: |
           set -euo pipefail
           env_file="$(mktemp)"
@@ -287,6 +300,7 @@ jobs:
             printf 'POSTGRES_URL=%s\n' "$PROD_POSTGRES_URL"
             printf 'POSTGRES_USER=%s\n' "$PROD_POSTGRES_USER"
             printf 'POSTGRES_PASS=%s\n' "$PROD_POSTGRES_PASS"
+            printf 'APP_CORS_ALLOWED_ORIGINS=%s\n' "$PROD_APP_CORS_ALLOWED_ORIGINS"
           } > "$env_file"
           chmod 600 "$env_file"
 

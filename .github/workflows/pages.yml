@@ -1,0 +1,73 @@
+name: Frontend Pages
+
+on:
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'frontend/**'
+      - 'scripts/build-pages-frontend.sh'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build static frontend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Build Pages artifact
+        env:
+          PAGES_APP_ENV: ${{ vars.PAGES_APP_ENV || 'production' }}
+          PAGES_BACKEND_BASE_URL: ${{ vars.PAGES_BACKEND_BASE_URL }}
+        run: ./scripts/build-pages-frontend.sh dist/pages
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Configure optional custom domain
+        if: ${{ vars.PAGES_CUSTOM_DOMAIN != '' }}
+        env:
+          GH_TOKEN: ${{ secrets.GH_ADMIN_TOKEN }}
+          CUSTOM_DOMAIN: ${{ vars.PAGES_CUSTOM_DOMAIN }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          if [ -z "${GH_TOKEN:-}" ]; then
+            echo "GH_ADMIN_TOKEN is required to configure a custom Pages domain."
+            exit 1
+          fi
+          if ! gh api "repos/$REPOSITORY/pages" >/dev/null 2>&1; then
+            gh api --method POST "repos/$REPOSITORY/pages" -f build_type=workflow >/dev/null
+          fi
+          gh api --method PUT "repos/$REPOSITORY/pages" \
+            -f build_type=workflow \
+            -f cname="$CUSTOM_DOMAIN" \
+            -F https_enforced=true >/dev/null
+
+      - name: Upload GitHub Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: dist/pages
+
+  deploy:
+    name: Deploy static frontend
+    runs-on: ubuntu-latest
+    needs: build
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
