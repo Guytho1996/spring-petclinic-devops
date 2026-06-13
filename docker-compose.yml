@@ -1,5 +1,5 @@
 services:
-  db:
+  postgres:
     profiles: ["local-db"]
     image: postgres:16-alpine
     environment:
@@ -11,6 +11,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 12
+    ports:
+      - "5432:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
 
@@ -18,7 +20,8 @@ services:
     build:
       context: .
     env_file:
-      - ${PETCLINIC_ENV_FILE:-/home/azureuser/.spring-petclinic-devops-dev.env}
+      - path: ${PETCLINIC_ENV_FILE:-/home/azureuser/.spring-petclinic-devops-dev.env}
+        required: false
     ports:
       - "8080:8080"
     healthcheck:
