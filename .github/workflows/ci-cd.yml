@@ -101,7 +101,7 @@ jobs:
   # ─── JOB 3: CD (Despliegue a Kubernetes en Staging/Prod) ─────────
   deploy-dev:
     name: Deploy to Development Server
-    needs: docker
+    needs: ci
     if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main')
     runs-on: ubuntu-latest
     environment:
