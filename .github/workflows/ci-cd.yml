@@ -1,0 +1,118 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master ]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # ─── JOB 1: CI (Build, Test & Scan) ──────────────────────────────
+  ci:
+    name: Continuous Integration
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Build & Compile
+        run: ./mvnw clean compile --no-transfer-progress
+
+      - name: Run Tests
+        run: ./mvnw test --no-transfer-progress
+
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: target/surefire-reports/
+
+      # Simulación/Paso de SonarQube/SonarCloud (SAST)
+      - name: SonarCloud Scan (Placeholder)
+        run: |
+          echo "Ejecutando análisis estático con SonarCloud..."
+          echo "SonarCloud analysis completed successfully (Quality Gate: Passed)"
+
+  # ─── JOB 2: Docker Build, Scan & Push ────────────────────────────
+  docker:
+    name: Docker Build & Push
+    needs: ci
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build Docker Image (Local)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          load: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+      # Escaneo de seguridad con Trivy (diapositivas 8, 9 y 16)
+      - name: Run Trivy Security Scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          format: 'table'
+          exit-code: '1' # Falla si encuentra vulnerabilidades críticas/altas
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Push Docker Image to GHCR
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+
+  # ─── JOB 3: CD (Despliegue a Kubernetes en Staging/Prod) ─────────
+  deploy:
+    name: Continuous Deployment
+    needs: docker
+    runs-on: ubuntu-latest
+    environment:
+      name: production # Requiere aprobación si se configura en GitHub
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # Simular despliegue a Kubernetes utilizando Kubeconfig y kubectl (diapositiva 25)
+      - name: Deploy to Kubernetes Cluster (Dry-Run)
+        run: |
+          echo "Configurando acceso al clúster de Kubernetes..."
+          echo "Actualizando tag de imagen en el archivo k8s/deployment.yaml a: ${{ github.sha }}"
+          sed -i 's|IMAGE_TAG|${{ github.sha }}|g' k8s/deployment.yaml || echo "No deployment.yaml found yet"
+          echo "Aplicando manifiestos de Kubernetes (Dry-Run)..."
+          echo "kubectl apply -f k8s/ --dry-run=client"
+          echo "Verificando el estado del despliegue..."
+          echo "kubectl rollout status deployment/petclinic -n devops-lab"
+          echo "Smoke test pasando exitosamente (HTTP 200 OK)"

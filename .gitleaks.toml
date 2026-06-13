@@ -1,0 +1,36 @@
+# Configuración de Gitleaks para prevenir secretos en el repositorio
+title = "gitleaks config"
+
+[rules]
+  [[rules]]
+    description = "AWS Manager Secret Key"
+    regex = '''(?i)aws_(?:secret|key|token)[=:]\s*(?:[A-Za-z0-9/+=]{40})'''
+    tags = ["aws", "key"]
+
+  [[rules]]
+    description = "AWS Access Key ID"
+    regex = '''(A3T[A-Z0-9]|AKIA|AGPA|AIDA|AROA|AIPA|ANPA|ANVA|ASIA)[A-Z0-9]{16}'''
+    tags = ["aws", "key"]
+
+  [[rules]]
+    description = "Generic API Key"
+    regex = '''(?i)(?:key|api|token|secret|password|db_pass)(?:[0-9a-z\-_\t .]{0,20})?[\s|'=:]+(?:[0-9a-zA-Z\-_=]{8,64})'''
+    tags = ["key", "generic"]
+
+  [[rules]]
+    description = "GitHub Personal Access Token"
+    regex = '''ghp_[a-zA-Z0-9]{36}'''
+    tags = ["github", "token"]
+
+  [[rules]]
+    description = "GitHub OAuth Access Token"
+    regex = '''gho_[a-zA-Z0-9]{36}'''
+    tags = ["github", "token"]
+
+[allowlist]
+  description = "Archivos permitidos"
+  files = [
+    '''pom\.xml''',
+    '''application\.properties''',
+    '''secrets\.yaml''' # Excluir el manifiesto que tiene datos encodeados en base64 de prueba
+  ]
