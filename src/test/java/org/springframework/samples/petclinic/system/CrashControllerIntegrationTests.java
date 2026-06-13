@@ -48,7 +48,8 @@ import org.springframework.http.ResponseEntity;
  */
 // NOT Waiting https://github.com/spring-projects/spring-boot/issues/5574
 @SpringBootTest(webEnvironment = RANDOM_PORT,
-		properties = { "spring.web.error.include-message=ALWAYS", "management.endpoints.access.default=none" })
+		properties = { "spring.web.error.include-message=ALWAYS", "management.endpoints.access.default=none",
+				"petclinic.crash-controller.enabled=true" })
 @AutoConfigureTestRestTemplate
 class CrashControllerIntegrationTests {
 

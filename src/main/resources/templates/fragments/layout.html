@@ -53,11 +53,13 @@
             <span th:text="#{vets}">Veterinarians</span>
           </li>
 
-          <li
-            th:replace="~{::menuItem ('/oups','error','trigger a RuntimeException to see how it is handled','exclamation-triangle',#{error})}">
-            <span class="fa exclamation-triangle" aria-hidden="true"></span>
-            <span th:text="#{error}">Error</span>
-          </li>
+          <th:block th:if="${crashControllerEnabled}">
+            <li
+              th:replace="~{::menuItem ('/oups','error','trigger a RuntimeException to see how it is handled','exclamation-triangle',#{error})}">
+              <span class="fa exclamation-triangle" aria-hidden="true"></span>
+              <span th:text="#{error}">Error</span>
+            </li>
+          </th:block>
 
         </ul>
       </div>
