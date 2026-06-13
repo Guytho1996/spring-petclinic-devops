@@ -6,6 +6,12 @@ on:
   pull_request:
     branches: [ main, master ]
   workflow_dispatch:
+    inputs:
+      deploy_production:
+        description: 'Run development deployment and then request production approval'
+        required: false
+        default: false
+        type: boolean
 
 env:
   REGISTRY: ghcr.io
@@ -98,11 +104,11 @@ jobs:
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LC }}:${{ github.sha }}
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LC }}:latest
 
-  # ─── JOB 3: CD (Despliegue a Kubernetes en Staging/Prod) ─────────
+  # ─── JOB 3: CD automático a desarrollo ───────────────────────────
   deploy-dev:
     name: Deploy to Development Server
-    needs: ci
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main')
+    needs: docker
+    if: (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.deploy_production == true)) && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main')
     runs-on: ubuntu-latest
     environment:
       name: development
@@ -179,25 +185,115 @@ jobs:
           exit 1
           REMOTE
 
-  # ─── JOB 4: CD reference for Kubernetes production ───────────────
-  deploy-kubernetes-dry-run:
-    name: Kubernetes Deployment Dry-Run
-    needs: docker
-    if: github.event_name == 'workflow_dispatch'
+  # ─── JOB 4: CD a producción con aprobación manual ────────────────
+  deploy-prod:
+    name: Deploy to Production Server
+    needs: deploy-dev
+    if: github.event_name == 'workflow_dispatch' && inputs.deploy_production == true && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main')
     runs-on: ubuntu-latest
     environment:
       name: production
+    concurrency:
+      group: petclinic-production
+      cancel-in-progress: false
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Deploy to Kubernetes Cluster (Dry-Run)
+      - name: Install SSH tunnel dependencies
         run: |
-          echo "Configurando acceso al clúster de Kubernetes..."
-          echo "Actualizando tag de imagen en el archivo k8s/deployment.yaml a: ${{ github.sha }}"
-          sed -i 's|IMAGE_TAG|${{ github.sha }}|g' k8s/deployment.yaml || echo "No deployment.yaml found yet"
-          echo "Aplicando manifiestos de Kubernetes (Dry-Run)..."
-          echo "kubectl apply -f k8s/ --dry-run=client"
-          echo "Verificando el estado del despliegue..."
-          echo "kubectl rollout status deployment/petclinic -n devops-lab"
-          echo "Smoke test pasando exitosamente (HTTP 200 OK)"
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y sshpass
+          curl -fsSL -o cloudflared.deb https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
+          sudo dpkg -i cloudflared.deb
+
+      - name: Verify production SSH path
+        env:
+          PROD_DEPLOY_HOST: ${{ secrets.PROD_DEPLOY_HOST }}
+          PROD_DEPLOY_USER: ${{ secrets.PROD_DEPLOY_USER }}
+          PROD_DEPLOY_PASSWORD: ${{ secrets.PROD_DEPLOY_PASSWORD }}
+          PROD_DEPLOY_TARGET: ${{ secrets.PROD_DEPLOY_TARGET }}
+        run: |
+          set -euo pipefail
+          SSHPASS="$PROD_DEPLOY_PASSWORD" sshpass -e ssh \
+            -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            -o ProxyCommand='cloudflared access ssh --hostname %h' \
+            "$PROD_DEPLOY_USER@$PROD_DEPLOY_HOST" \
+            "ssh -o BatchMode=yes -o StrictHostKeyChecking=no '$PROD_DEPLOY_TARGET' 'hostname && whoami'"
+
+      - name: Sync production environment file
+        env:
+          PROD_DEPLOY_HOST: ${{ secrets.PROD_DEPLOY_HOST }}
+          PROD_DEPLOY_USER: ${{ secrets.PROD_DEPLOY_USER }}
+          PROD_DEPLOY_PASSWORD: ${{ secrets.PROD_DEPLOY_PASSWORD }}
+          PROD_DEPLOY_TARGET: ${{ secrets.PROD_DEPLOY_TARGET }}
+          PROD_DEPLOY_PATH: ${{ secrets.PROD_DEPLOY_PATH }}
+          PROD_SPRING_PROFILES_ACTIVE: ${{ secrets.PROD_SPRING_PROFILES_ACTIVE }}
+          PROD_POSTGRES_URL: ${{ secrets.PROD_POSTGRES_URL }}
+          PROD_POSTGRES_USER: ${{ secrets.PROD_POSTGRES_USER }}
+          PROD_POSTGRES_PASS: ${{ secrets.PROD_POSTGRES_PASS }}
+        run: |
+          set -euo pipefail
+          env_file="$(mktemp)"
+          trap 'rm -f "$env_file"' EXIT
+          {
+            printf 'SPRING_PROFILES_ACTIVE=%s\n' "${PROD_SPRING_PROFILES_ACTIVE:-postgres}"
+            printf 'POSTGRES_URL=%s\n' "$PROD_POSTGRES_URL"
+            printf 'POSTGRES_USER=%s\n' "$PROD_POSTGRES_USER"
+            printf 'POSTGRES_PASS=%s\n' "$PROD_POSTGRES_PASS"
+          } > "$env_file"
+          chmod 600 "$env_file"
+
+          remote_env_file="/home/azureuser/.spring-petclinic-devops-prod.env"
+          remote_project_env="${PROD_DEPLOY_PATH%/}/.env"
+          ssh_base=(
+            sshpass -e ssh
+            -o StrictHostKeyChecking=no
+            -o UserKnownHostsFile=/dev/null
+            -o ProxyCommand='cloudflared access ssh --hostname %h'
+            "$PROD_DEPLOY_USER@$PROD_DEPLOY_HOST"
+          )
+
+          base64 -w0 "$env_file" | SSHPASS="$PROD_DEPLOY_PASSWORD" "${ssh_base[@]}" \
+            "ssh -o BatchMode=yes -o StrictHostKeyChecking=no '$PROD_DEPLOY_TARGET' 'umask 077; base64 -d > $remote_env_file; chmod 600 $remote_env_file'"
+
+          SSHPASS="$PROD_DEPLOY_PASSWORD" "${ssh_base[@]}" \
+            "ssh -o BatchMode=yes -o StrictHostKeyChecking=no '$PROD_DEPLOY_TARGET' 'umask 077; printf \"%s\\n\" PETCLINIC_ENV_FILE=$remote_env_file > $remote_project_env; chmod 600 $remote_project_env'"
+
+      - name: Deploy Docker Compose application to production
+        env:
+          PROD_DEPLOY_HOST: ${{ secrets.PROD_DEPLOY_HOST }}
+          PROD_DEPLOY_USER: ${{ secrets.PROD_DEPLOY_USER }}
+          PROD_DEPLOY_PASSWORD: ${{ secrets.PROD_DEPLOY_PASSWORD }}
+          PROD_DEPLOY_TARGET: ${{ secrets.PROD_DEPLOY_TARGET }}
+          PROD_DEPLOY_PATH: ${{ secrets.PROD_DEPLOY_PATH }}
+        run: |
+          set -euo pipefail
+          SSHPASS="$PROD_DEPLOY_PASSWORD" sshpass -e ssh \
+            -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            -o ProxyCommand='cloudflared access ssh --hostname %h' \
+            "$PROD_DEPLOY_USER@$PROD_DEPLOY_HOST" \
+            "ssh -o BatchMode=yes -o StrictHostKeyChecking=no '$PROD_DEPLOY_TARGET' \"PROD_DEPLOY_PATH='$PROD_DEPLOY_PATH' GITHUB_REF_NAME='$GITHUB_REF_NAME' bash -se\"" <<'REMOTE'
+          set -euo pipefail
+          cd "$PROD_DEPLOY_PATH"
+          git fetch origin "$GITHUB_REF_NAME"
+          git checkout "$GITHUB_REF_NAME"
+          git pull --ff-only origin "$GITHUB_REF_NAME"
+          docker_cmd="docker"
+          if ! docker info >/dev/null 2>&1; then
+            docker_cmd="sudo docker"
+          fi
+          $docker_cmd compose up -d --build
+          $docker_cmd compose ps
+          for attempt in $(seq 1 24); do
+            if curl -fsS http://localhost:8080/actuator/health; then
+              exit 0
+            fi
+            sleep 5
+          done
+          $docker_cmd compose logs --tail=100 app
+          exit 1
+          REMOTE

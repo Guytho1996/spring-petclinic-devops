@@ -19,6 +19,7 @@ services:
   app:
     build:
       context: .
+    restart: unless-stopped
     env_file:
       - path: ${PETCLINIC_ENV_FILE:-/home/azureuser/.spring-petclinic-devops-dev.env}
         required: false
