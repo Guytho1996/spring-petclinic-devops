@@ -2,7 +2,6 @@
   "use strict";
 
   const config = window.PETCLINIC_CONFIG || {};
-  const backendMode = config.backendBaseUrl === "same-origin" ? "same-origin" : "external";
   const backendBaseUrl = normalizeUrl(config.backendBaseUrl);
   const environment = config.environment || "production";
   const gitSha = config.gitSha || "";
@@ -30,14 +29,19 @@
   if (backendBaseUrl) {
     const healthUrl = backendBaseUrl + "/actuator/health";
     const ownersUrl = backendBaseUrl + "/owners/find";
-    const appUrl = backendMode === "same-origin" ? ownersUrl : backendBaseUrl;
+    const appUrl = ownersUrl;
 
     setLink(elements.backendLink, appUrl);
     setLink(elements.healthLink, healthUrl);
     setLink(elements.openApp, appUrl);
     setLink(elements.findOwners, ownersUrl);
     elements.backendHost.textContent = new URL(backendBaseUrl).host;
-    checkHealth(healthUrl);
+    if (canFetchFromCurrentPage(healthUrl)) {
+      checkHealth(healthUrl);
+    }
+    else {
+      setStatus("", "Petclinic enlazado", "Abra Petclinic para acceder al entorno publicado.");
+    }
   }
   else {
     setStatus("bad", "Backend no configurado", "Defina PAGES_BACKEND_BASE_URL para enlazar la API.");
@@ -48,7 +52,12 @@
       setStatus("bad", "Backend no configurado", "No hay URL publica para consultar.");
       return;
     }
-    checkHealth(backendBaseUrl + "/actuator/health");
+    const healthUrl = backendBaseUrl + "/actuator/health";
+    if (!canFetchFromCurrentPage(healthUrl)) {
+      setStatus("", "Health no consultable", "El navegador bloquea health HTTP desde GitHub Pages HTTPS.");
+      return;
+    }
+    checkHealth(healthUrl);
   });
 
   function normalizeUrl(value) {
@@ -73,6 +82,11 @@
   function setLink(element, url) {
     element.href = url;
     element.removeAttribute("aria-disabled");
+  }
+
+  function canFetchFromCurrentPage(url) {
+    const target = new URL(url);
+    return !(window.location.protocol === "https:" && target.protocol === "http:");
   }
 
   function buildText(sha, date) {
