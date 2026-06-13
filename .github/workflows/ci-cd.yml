@@ -18,7 +18,7 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  # ─── JOB 1: CI (Build, Test & Scan) ──────────────────────────────
+  # ─── JOB 1: CI (Build & Test) ────────────────────────────────────
   ci:
     name: Continuous Integration
     runs-on: ubuntu-latest
@@ -46,16 +46,60 @@ jobs:
           name: test-results
           path: target/surefire-reports/
 
-      # Simulación/Paso de SonarQube/SonarCloud (SAST)
-      - name: SonarCloud Scan (Placeholder)
-        run: |
-          echo "Ejecutando análisis estático con SonarCloud..."
-          echo "SonarCloud analysis completed successfully (Quality Gate: Passed)"
+  # ─── JOB 2: Security Gates (SAST & SCA) ──────────────────────────
+  security:
+    name: SAST & SCA Security Gates
+    needs: ci
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-  # ─── JOB 2: Docker Build, Scan & Push ────────────────────────────
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Prime Maven Dependency Cache
+        run: ./mvnw -B dependency:go-offline --no-transfer-progress
+
+      - name: Run Semgrep SAST
+        run: |
+          docker run --rm \
+            -v "${PWD}:/src:ro" \
+            -w /src \
+            semgrep/semgrep:1.165.0 \
+            semgrep scan \
+              --config p/java \
+              --config p/security-audit \
+              --error \
+              --metrics=off \
+              --exclude target
+
+      - name: Run Trivy SCA Dependency Scan
+        run: |
+          docker run --rm \
+            -v "${PWD}:/src:ro" \
+            -v "${HOME}/.m2:/root/.m2:ro" \
+            -w /src \
+            aquasec/trivy:latest \
+            fs \
+              --scanners vuln \
+              --pkg-types library \
+              --severity CRITICAL,HIGH \
+              --ignore-unfixed \
+              --offline-scan \
+              --exit-code 1 \
+              .
+
+  # ─── JOB 3: Docker Build, Scan & Push ────────────────────────────
   docker:
     name: Docker Build & Push
-    needs: ci
+    needs: security
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -104,7 +148,7 @@ jobs:
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LC }}:${{ github.sha }}
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LC }}:latest
 
-  # ─── JOB 3: CD automático a desarrollo ───────────────────────────
+  # ─── JOB 4: CD automático a desarrollo ───────────────────────────
   deploy-dev:
     name: Deploy to Development Server
     needs: docker
@@ -185,7 +229,7 @@ jobs:
           exit 1
           REMOTE
 
-  # ─── JOB 4: CD a producción con aprobación manual ────────────────
+  # ─── JOB 5: CD a producción con aprobación manual ────────────────
   deploy-prod:
     name: Deploy to Production Server
     needs: deploy-dev
