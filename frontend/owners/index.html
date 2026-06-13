@@ -122,6 +122,8 @@
         background: #fffbeb;
         border: 1px solid #fde68a;
         color: #78350f;
+      }
+      .alert-box.visible {
         display: block;
       }
       .alert-box-title {
@@ -204,38 +206,82 @@
         "use strict";
 
         const config = window.PETCLINIC_CONFIG || {};
-        const backendBaseUrl = config.backendBaseUrl || "https://20.114.139.164";
+        const backendBaseUrl = normalizeBackendUrl(config.backendBaseUrl);
         
         // Obtener el parámetro lastName de la URL actual
         const params = new URLSearchParams(window.location.search);
         const lastName = params.has('lastName') ? params.get('lastName') : '';
-        
-        // Construir la URL del backend
-        const targetUrl = backendBaseUrl.replace(/\/+$/, '') + '/owners?lastName=' + encodeURIComponent(lastName);
-        
-        document.getElementById('meta-url').textContent = targetUrl;
-        
-        const fallbackBtn = document.getElementById('direct-fallback-btn');
-        if (fallbackBtn) {
-          fallbackBtn.href = targetUrl;
-        }
 
         const logsEl = document.getElementById('console-logs');
         const badgeEl = document.getElementById('query-status-badge');
+        const metaUrlEl = document.getElementById('meta-url');
         const metaStatusEl = document.getElementById('meta-status');
         const metaContentTypeEl = document.getElementById('meta-content-type');
         const payloadViewerEl = document.getElementById('payload-viewer');
         const payloadContentEl = document.getElementById('payload-content');
         const mixedContentAlert = document.getElementById('mixed-content-alert');
+        const fallbackBtn = document.getElementById('direct-fallback-btn');
 
         function appendLog(message) {
           console.log(message);
           logsEl.textContent += '\n' + message;
         }
 
+        function normalizeBackendUrl(value) {
+          if (!value || typeof value !== 'string') {
+            return '';
+          }
+          const trimmed = value.trim();
+          if (!trimmed) {
+            return '';
+          }
+          if (trimmed === 'same-origin') {
+            return window.location.origin;
+          }
+          try {
+            const parsed = new URL(trimmed);
+            if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+              return '';
+            }
+            return parsed.href.replace(/\/+$/, '');
+          }
+          catch (error) {
+            return '';
+          }
+        }
+
+        function showWarning() {
+          mixedContentAlert.classList.add('visible');
+        }
+
+        function setErrorStatus(message) {
+          badgeEl.className = 'status-badge error';
+          badgeEl.textContent = 'Error';
+          metaStatusEl.textContent = 'Fallo';
+          metaContentTypeEl.textContent = 'N/A';
+          appendLog(message);
+          showWarning();
+        }
+
+        if (!backendBaseUrl) {
+          metaUrlEl.textContent = 'No configurada';
+          setErrorStatus('Backend no configurado. Defina PAGES_BACKEND_BASE_URL con una URL publica HTTPS.');
+          return;
+        }
+
+        // Construir la URL del backend
+        const targetUrl = backendBaseUrl.replace(/\/+$/, '') + '/owners?lastName=' + encodeURIComponent(lastName);
+
+        metaUrlEl.textContent = targetUrl;
+
+        if (fallbackBtn) {
+          fallbackBtn.href = targetUrl;
+        }
+
         // Si la página se carga sobre HTTPS y el backend es HTTP, mostrar advertencia de contenido mixto
         if (window.location.protocol === 'https:' && targetUrl.startsWith('http' + '://')) {
-          mixedContentAlert.style.display = 'block';
+          setErrorStatus('Consulta bloqueada: GitHub Pages usa HTTPS y el backend configurado usa HTTP.');
+          return;
         }
 
         appendLog('Realizando petición fetch a: ' + targetUrl);
@@ -283,7 +329,7 @@
             console.error('Error al realizar la petición:', error);
             
             // Mostrar la alerta en caso de cualquier error (CORS o Mixed Content)
-            mixedContentAlert.style.display = 'block';
+            showWarning();
           });
       }());
     </script>

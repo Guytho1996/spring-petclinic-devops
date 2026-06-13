@@ -14,6 +14,6 @@ COPY src/main/resources/static/resources/images/favicon.png /usr/share/nginx/htm
 
 RUN chmod +x /docker-entrypoint.d/40-render-config.sh
 
-EXPOSE 80
+EXPOSE 80 443
 
 HEALTHCHECK --interval=10s --timeout=5s --retries=12 CMD wget -qO- http://127.0.0.1/ >/dev/null || exit 1

@@ -47,6 +47,9 @@ services:
       FRONTEND_APP_ENV: ${FRONTEND_APP_ENV:-development}
       FRONTEND_BACKEND_BASE_URL: ${FRONTEND_BACKEND_BASE_URL:-same-origin}
       FRONTEND_GIT_SHA: ${GITHUB_SHA:-local}
+    volumes:
+      - ${FRONTEND_TLS_CERT_PATH:-./frontend/ssl/nginx.crt}:/etc/nginx/ssl/nginx.crt:ro
+      - ${FRONTEND_TLS_KEY_PATH:-./frontend/ssl/nginx.key}:/etc/nginx/ssl/nginx.key:ro
     depends_on:
       app:
         condition: service_healthy

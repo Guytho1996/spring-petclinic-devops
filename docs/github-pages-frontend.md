@@ -25,9 +25,35 @@ apply the custom domain in the repository Pages settings.
 
 ## Backend Requirements
 
-The Pages frontend can only call public HTTPS endpoints. The backend should be
-published behind an Ingress or reverse proxy and should allow the Pages origin in
-CORS when browser calls to `/actuator/health` or future JSON APIs are required.
+The Pages frontend can only call public HTTPS endpoints with a browser-trusted
+certificate. A raw IP address with a self-signed certificate will still fail in
+the browser, even if `curl -k` works.
+
+For the Azure VM deployment in this repository, assign a DNS label to the public
+IP and issue a Let's Encrypt certificate:
+
+```bash
+AZURE_DNS_LABEL=guytho1996-petclinic \
+LETSENCRYPT_EMAIL=you@example.com \
+./scripts/setup-azure-https.sh
+```
+
+The script configures the public IP DNS label, opens NSG ports `80` and `443`,
+requests the certificate, mounts it into the frontend container through `.env`,
+and installs a Certbot renewal hook that reloads Nginx.
+
+After the certificate is active, set the Pages backend variable to the trusted
+HTTPS hostname. The Pages build rejects `http://` backend URLs because browsers
+block those calls from GitHub Pages.
+
+```bash
+gh variable set PAGES_BACKEND_BASE_URL \
+  --repo Guytho1996/spring-petclinic-devops \
+  --body https://guytho1996-petclinic.eastus2.cloudapp.azure.com
+```
+
+The backend should allow the Pages origin in CORS when browser calls to
+`/owners`, `/actuator/health`, or future JSON APIs are required.
 
 ## Containerized Frontend
 

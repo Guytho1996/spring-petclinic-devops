@@ -32,6 +32,10 @@ frontend_base_path="$(normalize_base_path "${frontend_base_path:-/}")"
 
 backend_base_url="${PAGES_BACKEND_BASE_URL:-}"
 backend_base_url="${backend_base_url%/}"
+if [[ -n "$backend_base_url" && "$backend_base_url" != https://* ]]; then
+  echo "PAGES_BACKEND_BASE_URL must be a public HTTPS URL for GitHub Pages." >&2
+  exit 1
+fi
 owners_target_url=""
 if [[ -n "$backend_base_url" ]]; then
   owners_target_url="$backend_base_url/owners/find"
