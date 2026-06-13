@@ -169,7 +169,14 @@ jobs:
           git pull --ff-only origin "$GITHUB_REF_NAME"
           docker compose up -d --build
           docker compose ps
-          curl -fsS http://localhost:8080/actuator/health
+          for attempt in $(seq 1 24); do
+            if curl -fsS http://localhost:8080/actuator/health; then
+              exit 0
+            fi
+            sleep 5
+          done
+          docker compose logs --tail=100 app
+          exit 1
           REMOTE
 
   # ─── JOB 4: CD reference for Kubernetes production ───────────────
