@@ -38,9 +38,10 @@ if [[ -n "$backend_base_url" ]]; then
 fi
 
 rm -rf "$dist_dir"
-mkdir -p "$dist_dir/assets" "$dist_dir/owners/find"
+mkdir -p "$dist_dir/assets" "$dist_dir/owners" "$dist_dir/owners/find"
 
 cp "$frontend_dir/index.html" "$dist_dir/index.html"
+cp "$frontend_dir/owners/index.html" "$dist_dir/owners/index.html"
 cp "$frontend_dir/assets/site.css" "$dist_dir/assets/site.css"
 cp "$frontend_dir/assets/app.js" "$dist_dir/assets/app.js"
 cp src/main/resources/static/resources/images/pets.png "$dist_dir/assets/pets.png"

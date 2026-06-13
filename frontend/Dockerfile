@@ -5,6 +5,7 @@ RUN apk upgrade --no-cache
 COPY frontend/nginx.conf /etc/nginx/conf.d/default.conf
 COPY frontend/docker-entrypoint.d/40-render-config.sh /docker-entrypoint.d/40-render-config.sh
 COPY frontend/index.html /usr/share/nginx/html/index.html
+COPY frontend/owners/index.html /usr/share/nginx/html/owners/index.html
 COPY frontend/assets/site.css /usr/share/nginx/html/assets/site.css
 COPY frontend/assets/app.js /usr/share/nginx/html/assets/app.js
 COPY src/main/resources/static/resources/images/pets.png /usr/share/nginx/html/assets/pets.png
