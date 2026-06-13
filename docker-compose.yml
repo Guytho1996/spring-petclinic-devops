@@ -1,5 +1,6 @@
 services:
   db:
+    profiles: ["local-db"]
     image: postgres:16-alpine
     environment:
       POSTGRES_DB: petclinic
@@ -16,16 +17,10 @@ services:
   app:
     build:
       context: .
-    environment:
-      SPRING_PROFILES_ACTIVE: postgres
-      POSTGRES_URL: jdbc:postgresql://db:5432/petclinic
-      POSTGRES_USER: petclinic
-      POSTGRES_PASS: petclinic
+    env_file:
+      - ${PETCLINIC_ENV_FILE:-/home/azureuser/.spring-petclinic-devops-dev.env}
     ports:
       - "8080:8080"
-    depends_on:
-      db:
-        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health | grep -q '\"status\":\"UP\"'"]
       interval: 10s
