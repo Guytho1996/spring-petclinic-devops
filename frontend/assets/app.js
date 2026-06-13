@@ -28,13 +28,12 @@
 
   if (backendBaseUrl) {
     const healthUrl = backendBaseUrl + "/actuator/health";
-    const ownersUrl = backendBaseUrl + "/owners/find";
-    const appUrl = ownersUrl;
+    const ownersPageUrl = frontendRouteUrl("owners/find/");
 
-    setLink(elements.backendLink, appUrl);
+    setLink(elements.backendLink, ownersPageUrl);
     setLink(elements.healthLink, healthUrl);
-    setLink(elements.openApp, appUrl);
-    setLink(elements.findOwners, ownersUrl);
+    setLink(elements.openApp, ownersPageUrl);
+    setLink(elements.findOwners, ownersPageUrl);
     elements.backendHost.textContent = new URL(backendBaseUrl).host;
     if (canFetchFromCurrentPage(healthUrl)) {
       checkHealth(healthUrl);
@@ -82,6 +81,31 @@
   function setLink(element, url) {
     element.href = url;
     element.removeAttribute("aria-disabled");
+  }
+
+  function frontendRouteUrl(path) {
+    const basePath = normalizeBasePath(config.frontendBasePath);
+    return window.location.origin + basePath + path.replace(/^\/+/, "");
+  }
+
+  function normalizeBasePath(value) {
+    if (!value || typeof value !== "string") {
+      return currentBasePath();
+    }
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return currentBasePath();
+    }
+    const withLeadingSlash = trimmed.charAt(0) === "/" ? trimmed : "/" + trimmed;
+    return withLeadingSlash.endsWith("/") ? withLeadingSlash : withLeadingSlash + "/";
+  }
+
+  function currentBasePath() {
+    const path = window.location.pathname;
+    if (path.endsWith("/")) {
+      return path;
+    }
+    return path.slice(0, path.lastIndexOf("/") + 1) || "/";
   }
 
   function canFetchFromCurrentPage(url) {

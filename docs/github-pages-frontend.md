@@ -9,9 +9,14 @@ Kubernetes Ingress.
 Set repository variables in GitHub:
 
 - `PAGES_BACKEND_BASE_URL`: public backend URL, for example `https://api.example.com`
+- `PAGES_FRONTEND_BASE_PATH`: optional Pages base path, for example `/spring-petclinic-devops/`
 - `PAGES_APP_ENV`: label shown in the frontend, for example `production`
 - `PAGES_FRONTEND_ORIGIN`: frontend origin allowed by backend CORS, for example `https://guytho1996.github.io`
 - `PAGES_CUSTOM_DOMAIN`: optional Pages custom domain, for example `app.example.com`
+
+The Pages artifact also creates `/owners/find/` as a static entry route. Because
+GitHub Pages cannot proxy requests to Spring Boot, that route redirects the
+browser to `${PAGES_BACKEND_BASE_URL}/owners/find`.
 
 For a custom subdomain, configure GitHub Pages with the custom domain and create
 a DNS `CNAME` record that points the subdomain to `guytho1996.github.io`.
