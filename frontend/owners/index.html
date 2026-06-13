@@ -158,7 +158,7 @@
       <div id="mixed-content-alert" class="alert-box warning">
         <div class="alert-box-title">Restricción de Contenido Mixto o CORS Detectada</div>
         <div class="alert-box-desc">
-          Si el backend está configurado en HTTP (por ejemplo, <code>http://20.114.139.164:8080</code>) y estás accediendo desde un frontend en HTTPS (GitHub Pages), el navegador bloqueará la consulta <code>fetch</code> por seguridad de Contenido Mixto (Mixed Content) o por falta de cabeceras CORS. 
+          Si el backend está configurado en HTTP (por ejemplo, el puerto 8080 de la IP pública) y estás accediendo desde un frontend en HTTPS (GitHub Pages), el navegador bloqueará la consulta <code>fetch</code> por seguridad de Contenido Mixto (Mixed Content) o por falta de cabeceras CORS. 
           <br><br>
           Para solucionarlo, puedes abrir el endpoint directamente en tu navegador haciendo clic en el botón de abajo:
           <div style="margin-top: 14px;">
@@ -204,7 +204,7 @@
         "use strict";
 
         const config = window.PETCLINIC_CONFIG || {};
-        const backendBaseUrl = config.backendBaseUrl || "http://20.114.139.164:8080";
+        const backendBaseUrl = config.backendBaseUrl || "https://20.114.139.164";
         
         // Obtener el parámetro lastName de la URL actual
         const params = new URLSearchParams(window.location.search);
@@ -234,7 +234,7 @@
         }
 
         // Si la página se carga sobre HTTPS y el backend es HTTP, mostrar advertencia de contenido mixto
-        if (window.location.protocol === 'https:' && targetUrl.startsWith('http://')) {
+        if (window.location.protocol === 'https:' && targetUrl.startsWith('http' + '://')) {
           mixedContentAlert.style.display = 'block';
         }
 

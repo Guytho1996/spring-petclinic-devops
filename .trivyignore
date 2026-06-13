@@ -1,0 +1,3 @@
+# Ignore dummy SSL private key for frontend HTTPS testing
+AsymmetricPrivateKey
+private-key
