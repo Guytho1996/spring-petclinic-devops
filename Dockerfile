@@ -10,6 +10,7 @@ RUN ./mvnw -B package -DskipTests --no-transfer-progress
 
 FROM eclipse-temurin:17-jre-alpine AS runtime
 
+RUN apk upgrade --no-cache
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 WORKDIR /app
 
