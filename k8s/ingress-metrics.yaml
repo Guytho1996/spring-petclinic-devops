@@ -1,0 +1,26 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: petclinic-metrics-ingress
+  namespace: devops-lab
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    # Whitelist to only allow the external Prometheus server IP
+    nginx.ingress.kubernetes.io/whitelist-source-range: "129.159.70.134"
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - petclinic.local
+    secretName: petclinic-frontend-tls
+  rules:
+  - host: petclinic.local
+    http:
+      paths:
+      - path: /actuator/prometheus
+        pathType: Prefix
+        backend:
+          service:
+            name: petclinic-backend
+            port:
+              number: 8080
