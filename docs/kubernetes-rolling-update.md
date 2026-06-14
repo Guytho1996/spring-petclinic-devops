@@ -45,6 +45,8 @@ Variables opcionales de environment/repository:
 - `PROD_AKS_RESOURCE_GROUP`, `PROD_AKS_CLUSTER_NAME`
 - `DEV_K8S_NAMESPACE`, `PROD_K8S_NAMESPACE`
 - `DEV_INGRESS_HOST`, `PROD_INGRESS_HOST`
+- `INGRESS_TLS_SECRET`
+- `INGRESS_TLS_CERT_PATH`, `INGRESS_TLS_KEY_PATH`
 
 ## Aplicar los manifiestos manualmente
 

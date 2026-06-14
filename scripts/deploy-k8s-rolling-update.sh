@@ -10,6 +10,7 @@ FRONTEND_APP_ENV="${FRONTEND_APP_ENV:-production}"
 FRONTEND_BACKEND_BASE_URL="${FRONTEND_BACKEND_BASE_URL:-same-origin}"
 ROLLOUT_TIMEOUT="${ROLLOUT_TIMEOUT:-10m}"
 INGRESS_HOST="${INGRESS_HOST:-petclinic.local}"
+INGRESS_TLS_SECRET="${INGRESS_TLS_SECRET:-petclinic-frontend-tls}"
 
 if [[ -z "${BACKEND_IMAGE:-}" && -n "${GITHUB_REPOSITORY:-}" ]]; then
   BACKEND_IMAGE="${REGISTRY:-ghcr.io}/${GITHUB_REPOSITORY,,}"
@@ -76,6 +77,19 @@ rollout_status() {
   --dry-run=client \
   -o yaml | "$KUBECTL_BIN" apply -f -
 
+if [[ -n "${INGRESS_TLS_CERT_PATH:-}" || -n "${INGRESS_TLS_KEY_PATH:-}" ]]; then
+  if [[ -z "${INGRESS_TLS_CERT_PATH:-}" || -z "${INGRESS_TLS_KEY_PATH:-}" ]]; then
+    echo "Both INGRESS_TLS_CERT_PATH and INGRESS_TLS_KEY_PATH are required when configuring Ingress TLS" >&2
+    exit 2
+  fi
+
+  "$KUBECTL_BIN" -n "$K8S_NAMESPACE" create secret tls "$INGRESS_TLS_SECRET" \
+    --cert="$INGRESS_TLS_CERT_PATH" \
+    --key="$INGRESS_TLS_KEY_PATH" \
+    --dry-run=client \
+    -o yaml | "$KUBECTL_BIN" apply -f -
+fi
+
 for manifest in "$MANIFEST_DIR"/*.yaml; do
   manifest_name="$(basename "$manifest")"
   case "$manifest_name" in
@@ -89,7 +103,8 @@ for manifest in "$MANIFEST_DIR"/*.yaml; do
     -e "s#ghcr.io/guytho1996/spring-petclinic-devops:IMAGE_TAG#${BACKEND_IMAGE}:${IMAGE_TAG}#g" \
     -e "s#ghcr.io/guytho1996/spring-petclinic-devops-frontend:IMAGE_TAG#${FRONTEND_IMAGE}:${IMAGE_TAG}#g" \
     -e "s#IMAGE_TAG#${IMAGE_TAG}#g" \
-    -e "s#host: petclinic.local#host: ${INGRESS_HOST}#g" \
+    -e "s#petclinic.local#${INGRESS_HOST}#g" \
+    -e "s#petclinic-frontend-tls#${INGRESS_TLS_SECRET}#g" \
     "$manifest" > "$rendered_dir/$manifest_name"
 
   "$KUBECTL_BIN" apply -f "$rendered_dir/$manifest_name"
