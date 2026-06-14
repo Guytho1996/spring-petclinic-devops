@@ -12,9 +12,11 @@ docker compose up --build
 
 Open:
 
-- Grafana: http://localhost:3000
-- Prometheus: http://localhost:9090
-- Prometheus alerts: http://localhost:9090/alerts
+- Grafana through Nginx HTTPS: https://guytho1996-petclinic.eastus2.cloudapp.azure.com/grafana/
+- SLO dashboard: https://guytho1996-petclinic.eastus2.cloudapp.azure.com/grafana/d/spring-petclinic-slo/spring-petclinic-slo-dashboard
+
+Prometheus is kept on the internal Docker network. Grafana reaches it through
+the provisioned datasource URL `http://prometheus:9090`.
 
 Default Grafana credentials are `admin` / `admin`. Override them with
 `GRAFANA_ADMIN_USER` and `GRAFANA_ADMIN_PASSWORD`.

@@ -6,20 +6,7 @@
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
   "id": null,
-  "links": [
-    {
-      "asDropdown": false,
-      "icon": "external link",
-      "includeVars": true,
-      "keepTime": true,
-      "tags": [],
-      "targetBlank": true,
-      "title": "Prometheus Alerts",
-      "tooltip": "Open Prometheus alerts",
-      "type": "link",
-      "url": "http://localhost:9090/alerts"
-    }
-  ],
+  "links": [],
   "liveNow": false,
   "panels": [
     {

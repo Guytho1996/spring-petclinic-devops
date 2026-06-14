@@ -79,8 +79,8 @@ services:
     depends_on:
       app:
         condition: service_healthy
-    ports:
-      - "${PROMETHEUS_PORT:-9090}:9090"
+    expose:
+      - "9090"
 
   grafana:
     image: grafana/grafana:11.3.1
@@ -90,14 +90,18 @@ services:
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
       GF_USERS_ALLOW_SIGN_UP: "false"
       GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/slo.json
+      GF_SERVER_DOMAIN: ${GRAFANA_DOMAIN:-guytho1996-petclinic.eastus2.cloudapp.azure.com}
+      GF_SERVER_ROOT_URL: ${GRAFANA_ROOT_URL:-https://guytho1996-petclinic.eastus2.cloudapp.azure.com/grafana/}
+      GF_SERVER_SERVE_FROM_SUB_PATH: "true"
+      GF_SECURITY_COOKIE_SECURE: "true"
     volumes:
       - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
       - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
       - grafana-data:/var/lib/grafana
     depends_on:
       - prometheus
-    ports:
-      - "${GRAFANA_PORT:-3000}:3000"
+    expose:
+      - "3000"
 
 volumes:
   postgres-data:

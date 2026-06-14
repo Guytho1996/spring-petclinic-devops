@@ -366,6 +366,14 @@ spec:
               value: "false"
             - name: GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH
               value: /var/lib/grafana/dashboards/slo.json
+            - name: GF_SERVER_DOMAIN
+              value: guytho1996-petclinic.eastus2.cloudapp.azure.com
+            - name: GF_SERVER_ROOT_URL
+              value: https://guytho1996-petclinic.eastus2.cloudapp.azure.com/grafana/
+            - name: GF_SERVER_SERVE_FROM_SUB_PATH
+              value: "true"
+            - name: GF_SECURITY_COOKIE_SECURE
+              value: "true"
           readinessProbe:
             httpGet:
               path: /api/health
