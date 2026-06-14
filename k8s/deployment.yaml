@@ -40,7 +40,7 @@ spec:
             cpu: "500m"
             memory: "512Mi"
           requests:
-            cpu: "25m"
+            cpu: "250m"
             memory: "256Mi"
         lifecycle:
           preStop:
