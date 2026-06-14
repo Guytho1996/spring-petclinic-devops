@@ -93,7 +93,7 @@ fi
 for manifest in "$MANIFEST_DIR"/*.yaml; do
   manifest_name="$(basename "$manifest")"
   case "$manifest_name" in
-    namespace.yaml|configmap.yaml|secrets.yaml|secrets.example.yaml)
+    namespace.yaml|configmap.yaml|secrets.yaml|secrets.example.yaml|monitoring.yaml)
       continue
       ;;
   esac

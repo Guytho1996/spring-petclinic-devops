@@ -27,7 +27,12 @@ defined in `monitoring/grafana/provisioning/datasources/prometheus.yml`.
 
 ## Kubernetes
 
-Deploy the application manifests first, then deploy monitoring:
+The GitHub Actions rolling-update deploy skips `k8s/monitoring.yaml`.
+Prometheus and Grafana currently run on the external OCI monitoring server to
+keep the single-node development AKS cluster below its CPU quota.
+
+For a manual in-cluster deployment, deploy the application manifests first,
+then deploy monitoring:
 
 ```bash
 kubectl apply -f k8s/
