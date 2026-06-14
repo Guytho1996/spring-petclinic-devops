@@ -14,11 +14,47 @@ Ambos usan `strategy.type: RollingUpdate` con `maxUnavailable: 0` y
 pod nuevo, espera a que su `readinessProbe` pase y luego elimina un pod de la
 version anterior.
 
-## Aplicar los manifiestos
+## Ejecucion desde CI/CD
+
+El workflow `.github/workflows/ci-cd.yml` ejecuta el rolling update real en AKS:
+
+- `deploy-dev`: despliegue automatico al cluster de development/staging.
+- `deploy-prod`: despliegue al cluster de production, protegido por el
+  environment `production` de GitHub Actions.
+
+Ambos jobs ejecutan `scripts/deploy-k8s-rolling-update.sh`. El script:
+
+1. Configura `ConfigMap` y `Secret` desde GitHub Secrets.
+2. Renderiza `IMAGE_TAG` con el SHA del commit.
+3. Aplica los manifiestos Kubernetes.
+4. Ejecuta `kubectl set image`.
+5. Espera `kubectl rollout status` para backend y frontend.
+
+Secrets necesarios:
+
+- `AZURE_CREDENTIALS`
+- `DEV_POSTGRES_URL`, `DEV_POSTGRES_USER`, `DEV_POSTGRES_PASS`
+- `PROD_POSTGRES_URL`, `PROD_POSTGRES_USER`, `PROD_POSTGRES_PASS`
+
+Variables opcionales de environment/repository:
+
+- `DEV_AKS_RESOURCE_GROUP`, `DEV_AKS_CLUSTER_NAME`
+- `PROD_AKS_RESOURCE_GROUP`, `PROD_AKS_CLUSTER_NAME`
+- `DEV_K8S_NAMESPACE`, `PROD_K8S_NAMESPACE`
+- `DEV_INGRESS_HOST`, `PROD_INGRESS_HOST`
+
+## Aplicar los manifiestos manualmente
 
 ```bash
-kubectl apply -f k8s/
-kubectl get pods,hpa,pdb -n devops-lab
+export IMAGE_TAG=<sha>
+export BACKEND_IMAGE=ghcr.io/guytho1996/spring-petclinic-devops
+export FRONTEND_IMAGE=ghcr.io/guytho1996/spring-petclinic-devops-frontend
+export POSTGRES_URL='jdbc:postgresql://...:5432/petclinic_dev?sslmode=require'
+export POSTGRES_USER='<postgres-user>'
+export POSTGRES_PASS='<postgres-password>'
+export APP_CORS_ALLOWED_ORIGINS='https://guytho1996-petclinic-dev.eastus2.cloudapp.azure.com'
+
+./scripts/deploy-k8s-rolling-update.sh
 ```
 
 ## Desplegar una nueva version

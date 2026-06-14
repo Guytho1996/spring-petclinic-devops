@@ -10,6 +10,15 @@ spec:
     name: petclinic-frontend
   minReplicas: 2
   maxReplicas: 10
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Pods
+        value: 1
+        periodSeconds: 60
+    scaleDown:
+      stabilizationWindowSeconds: 300
   metrics:
   - type: Resource
     resource:

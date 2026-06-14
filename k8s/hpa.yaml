@@ -10,10 +10,19 @@ spec:
     name: petclinic-backend
   minReplicas: 2
   maxReplicas: 10
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Pods
+        value: 1
+        periodSeconds: 60
+    scaleDown:
+      stabilizationWindowSeconds: 300
   metrics:
   - type: Resource
     resource:
       name: cpu
       target:
-        type: Utilization
-        averageUtilization: 70
+        type: AverageValue
+        averageValue: 200m

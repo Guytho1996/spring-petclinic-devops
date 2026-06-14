@@ -101,6 +101,9 @@ jobs:
     name: Docker Build & Push
     needs: security
     runs-on: ubuntu-latest
+    outputs:
+      backend_image: ${{ steps.images.outputs.backend_image }}
+      frontend_image: ${{ steps.images.outputs.frontend_image }}
     permissions:
       contents: read
       packages: write
@@ -112,11 +115,16 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Normalize Image Name
+        id: images
         run: |
           image_name_lc="${GITHUB_REPOSITORY,,}"
           echo "IMAGE_NAME_LC=$image_name_lc" >> "$GITHUB_ENV"
-          echo "BACKEND_IMAGE=${REGISTRY}/$image_name_lc" >> "$GITHUB_ENV"
-          echo "FRONTEND_IMAGE=${REGISTRY}/${image_name_lc}-frontend" >> "$GITHUB_ENV"
+          backend_image="${REGISTRY}/$image_name_lc"
+          frontend_image="${REGISTRY}/${image_name_lc}-frontend"
+          echo "BACKEND_IMAGE=$backend_image" >> "$GITHUB_ENV"
+          echo "FRONTEND_IMAGE=$frontend_image" >> "$GITHUB_ENV"
+          echo "backend_image=$backend_image" >> "$GITHUB_OUTPUT"
+          echo "frontend_image=$frontend_image" >> "$GITHUB_OUTPUT"
 
       - name: Log in to GHCR
         uses: docker/login-action@v3
@@ -185,9 +193,9 @@ jobs:
             ${{ env.FRONTEND_IMAGE }}:${{ github.sha }}
             ${{ env.FRONTEND_IMAGE }}:latest
 
-  # ─── JOB 4: CD automático a desarrollo ───────────────────────────
+  # ─── JOB 4: CD automático a desarrollo/staging ───────────────────
   deploy-dev:
-    name: Deploy to Development Server
+    name: Deploy to Development AKS
     needs: docker
     if: (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.deploy_production == true)) && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main')
     runs-on: ubuntu-latest
@@ -196,82 +204,53 @@ jobs:
     concurrency:
       group: petclinic-development
       cancel-in-progress: true
+    permissions:
+      contents: read
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Configure SSH
-        env:
-          DEV_DEPLOY_HOST: ${{ secrets.DEV_DEPLOY_HOST }}
-          DEV_DEPLOY_PORT: ${{ secrets.DEV_DEPLOY_PORT }}
-          DEV_DEPLOY_SSH_KEY: ${{ secrets.DEV_DEPLOY_SSH_KEY }}
-        run: |
-          set -euo pipefail
-          port="${DEV_DEPLOY_PORT:-22}"
-          mkdir -p ~/.ssh
-          printf '%s\n' "$DEV_DEPLOY_SSH_KEY" > ~/.ssh/petclinic-dev
-          chmod 600 ~/.ssh/petclinic-dev
-          ssh-keyscan -p "$port" "$DEV_DEPLOY_HOST" >> ~/.ssh/known_hosts
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v4
 
-      - name: Sync development environment file
-        env:
-          DEV_DEPLOY_HOST: ${{ secrets.DEV_DEPLOY_HOST }}
-          DEV_DEPLOY_PORT: ${{ secrets.DEV_DEPLOY_PORT }}
-          DEV_DEPLOY_USER: ${{ secrets.DEV_DEPLOY_USER }}
-          DEV_SPRING_PROFILES_ACTIVE: ${{ secrets.DEV_SPRING_PROFILES_ACTIVE }}
-          DEV_POSTGRES_URL: ${{ secrets.DEV_POSTGRES_URL }}
-          DEV_POSTGRES_USER: ${{ secrets.DEV_POSTGRES_USER }}
-          DEV_POSTGRES_PASS: ${{ secrets.DEV_POSTGRES_PASS }}
-          DEV_APP_CORS_ALLOWED_ORIGINS: ${{ secrets.DEV_APP_CORS_ALLOWED_ORIGINS || 'https://guytho1996-petclinic-dev.eastus2.cloudapp.azure.com' }}
-        run: |
-          set -euo pipefail
-          port="${DEV_DEPLOY_PORT:-22}"
-          env_file="$(mktemp)"
-          {
-            printf 'SPRING_PROFILES_ACTIVE=%s\n' "${DEV_SPRING_PROFILES_ACTIVE:-postgres}"
-            printf 'POSTGRES_URL=%s\n' "$DEV_POSTGRES_URL"
-            printf 'POSTGRES_USER=%s\n' "$DEV_POSTGRES_USER"
-            printf 'POSTGRES_PASS=%s\n' "$DEV_POSTGRES_PASS"
-            printf 'APP_CORS_ALLOWED_ORIGINS=%s\n' "$DEV_APP_CORS_ALLOWED_ORIGINS"
-          } > "$env_file"
-          chmod 600 "$env_file"
-          scp -i ~/.ssh/petclinic-dev -P "$port" "$env_file" "$DEV_DEPLOY_USER@$DEV_DEPLOY_HOST:/tmp/spring-petclinic-dev.env"
-          ssh -i ~/.ssh/petclinic-dev -p "$port" "$DEV_DEPLOY_USER@$DEV_DEPLOY_HOST" \
-            'install -m 600 /tmp/spring-petclinic-dev.env /home/azureuser/.spring-petclinic-devops-dev.env && rm -f /tmp/spring-petclinic-dev.env'
-          rm -f "$env_file"
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Deploy Docker Compose application
+      - name: Configure AKS context
         env:
-          DEV_DEPLOY_HOST: ${{ secrets.DEV_DEPLOY_HOST }}
-          DEV_DEPLOY_PORT: ${{ secrets.DEV_DEPLOY_PORT }}
-          DEV_DEPLOY_USER: ${{ secrets.DEV_DEPLOY_USER }}
-          DEV_DEPLOY_PATH: ${{ secrets.DEV_DEPLOY_PATH }}
+          AKS_RESOURCE_GROUP: ${{ vars.DEV_AKS_RESOURCE_GROUP || 'petclinic-staging-rg' }}
+          AKS_CLUSTER_NAME: ${{ vars.DEV_AKS_CLUSTER_NAME || 'petclinic-staging-aks' }}
         run: |
           set -euo pipefail
-          port="${DEV_DEPLOY_PORT:-22}"
-          ssh -i ~/.ssh/petclinic-dev -p "$port" "$DEV_DEPLOY_USER@$DEV_DEPLOY_HOST" \
-            "DEV_DEPLOY_PATH='$DEV_DEPLOY_PATH' GITHUB_REF_NAME='$GITHUB_REF_NAME' bash -s" <<'REMOTE'
-          set -euo pipefail
-          cd "$DEV_DEPLOY_PATH"
-          git fetch origin "$GITHUB_REF_NAME"
-          git checkout "$GITHUB_REF_NAME"
-          git pull --ff-only origin "$GITHUB_REF_NAME"
-          docker compose up -d --build
-          docker compose ps
-          for attempt in $(seq 1 24); do
-            if curl -kfsS https://localhost/actuator/health; then
-              exit 0
-            fi
-            sleep 5
-          done
-          docker compose logs --tail=100 app frontend
-          exit 1
-          REMOTE
+          az aks get-credentials \
+            --resource-group "$AKS_RESOURCE_GROUP" \
+            --name "$AKS_CLUSTER_NAME" \
+            --overwrite-existing
+          kubectl config current-context
+
+      - name: Deploy Kubernetes rolling update
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+          BACKEND_IMAGE: ${{ needs.docker.outputs.backend_image }}
+          FRONTEND_IMAGE: ${{ needs.docker.outputs.frontend_image }}
+          K8S_NAMESPACE: ${{ vars.DEV_K8S_NAMESPACE || 'devops-lab' }}
+          INGRESS_HOST: ${{ vars.DEV_INGRESS_HOST || 'guytho1996-petclinic-dev.eastus2.cloudapp.azure.com' }}
+          SPRING_PROFILES_ACTIVE: ${{ secrets.DEV_SPRING_PROFILES_ACTIVE || 'postgres' }}
+          POSTGRES_URL: ${{ secrets.DEV_POSTGRES_URL }}
+          POSTGRES_USER: ${{ secrets.DEV_POSTGRES_USER }}
+          POSTGRES_PASS: ${{ secrets.DEV_POSTGRES_PASS }}
+          APP_CORS_ALLOWED_ORIGINS: ${{ secrets.DEV_APP_CORS_ALLOWED_ORIGINS || 'https://guytho1996-petclinic-dev.eastus2.cloudapp.azure.com' }}
+          FRONTEND_APP_ENV: development
+          FRONTEND_BACKEND_BASE_URL: same-origin
+          SMOKE_TEST_URL: ${{ secrets.DEV_SMOKE_TEST_URL }}
+        run: ./scripts/deploy-k8s-rolling-update.sh
 
   # ─── JOB 5: CD a producción con aprobación manual ────────────────
   deploy-prod:
-    name: Deploy to Production Server
-    needs: deploy-dev
+    name: Deploy to Production AKS
+    needs: [docker, deploy-dev]
     if: (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.deploy_production == true)) && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main')
     runs-on: ubuntu-latest
     environment:
@@ -279,108 +258,45 @@ jobs:
     concurrency:
       group: petclinic-production
       cancel-in-progress: false
+    permissions:
+      contents: read
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Install SSH tunnel dependencies
-        run: |
-          set -euo pipefail
-          sudo apt-get update
-          sudo apt-get install -y sshpass
-          curl -fsSL -o cloudflared.deb https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
-          sudo dpkg -i cloudflared.deb
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v4
 
-      - name: Verify production SSH path
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Configure AKS context
         env:
-          PROD_DEPLOY_HOST: ${{ secrets.PROD_DEPLOY_HOST }}
-          PROD_DEPLOY_USER: ${{ secrets.PROD_DEPLOY_USER }}
-          PROD_DEPLOY_PASSWORD: ${{ secrets.PROD_DEPLOY_PASSWORD }}
-          PROD_DEPLOY_TARGET: ${{ secrets.PROD_DEPLOY_TARGET }}
+          AKS_RESOURCE_GROUP: ${{ vars.PROD_AKS_RESOURCE_GROUP || 'petclinic-production-rg' }}
+          AKS_CLUSTER_NAME: ${{ vars.PROD_AKS_CLUSTER_NAME || 'petclinic-production-aks' }}
         run: |
           set -euo pipefail
-          SSHPASS="$PROD_DEPLOY_PASSWORD" sshpass -e ssh \
-            -o StrictHostKeyChecking=no \
-            -o UserKnownHostsFile=/dev/null \
-            -o ProxyCommand='cloudflared access ssh --hostname %h' \
-            "$PROD_DEPLOY_USER@$PROD_DEPLOY_HOST" \
-            "ssh -o BatchMode=yes -o StrictHostKeyChecking=no '$PROD_DEPLOY_TARGET' 'hostname && whoami'"
+          az aks get-credentials \
+            --resource-group "$AKS_RESOURCE_GROUP" \
+            --name "$AKS_CLUSTER_NAME" \
+            --overwrite-existing
+          kubectl config current-context
 
-      - name: Sync production environment file
+      - name: Deploy Kubernetes rolling update
         env:
-          PROD_DEPLOY_HOST: ${{ secrets.PROD_DEPLOY_HOST }}
-          PROD_DEPLOY_USER: ${{ secrets.PROD_DEPLOY_USER }}
-          PROD_DEPLOY_PASSWORD: ${{ secrets.PROD_DEPLOY_PASSWORD }}
-          PROD_DEPLOY_TARGET: ${{ secrets.PROD_DEPLOY_TARGET }}
-          PROD_DEPLOY_PATH: ${{ secrets.PROD_DEPLOY_PATH }}
-          PROD_SPRING_PROFILES_ACTIVE: ${{ secrets.PROD_SPRING_PROFILES_ACTIVE }}
-          PROD_POSTGRES_URL: ${{ secrets.PROD_POSTGRES_URL }}
-          PROD_POSTGRES_USER: ${{ secrets.PROD_POSTGRES_USER }}
-          PROD_POSTGRES_PASS: ${{ secrets.PROD_POSTGRES_PASS }}
-          PROD_APP_CORS_ALLOWED_ORIGINS: ${{ secrets.PROD_APP_CORS_ALLOWED_ORIGINS || 'https://guytho1996-petclinic.eastus2.cloudapp.azure.com' }}
-          PROD_FRONTEND_TLS_CERT_PATH: ${{ secrets.PROD_FRONTEND_TLS_CERT_PATH || '/etc/petclinic/tls/nginx.crt' }}
-          PROD_FRONTEND_TLS_KEY_PATH: ${{ secrets.PROD_FRONTEND_TLS_KEY_PATH || '/etc/petclinic/tls/nginx.key' }}
-        run: |
-          set -euo pipefail
-          env_file="$(mktemp)"
-          trap 'rm -f "$env_file"' EXIT
-          {
-            printf 'SPRING_PROFILES_ACTIVE=%s\n' "${PROD_SPRING_PROFILES_ACTIVE:-postgres}"
-            printf 'POSTGRES_URL=%s\n' "$PROD_POSTGRES_URL"
-            printf 'POSTGRES_USER=%s\n' "$PROD_POSTGRES_USER"
-            printf 'POSTGRES_PASS=%s\n' "$PROD_POSTGRES_PASS"
-            printf 'APP_CORS_ALLOWED_ORIGINS=%s\n' "$PROD_APP_CORS_ALLOWED_ORIGINS"
-          } > "$env_file"
-          chmod 600 "$env_file"
-
-          remote_env_file="/home/azureuser/.spring-petclinic-devops-prod.env"
-          remote_project_env="${PROD_DEPLOY_PATH%/}/.env"
-          ssh_base=(
-            sshpass -e ssh
-            -o StrictHostKeyChecking=no
-            -o UserKnownHostsFile=/dev/null
-            -o ProxyCommand='cloudflared access ssh --hostname %h'
-            "$PROD_DEPLOY_USER@$PROD_DEPLOY_HOST"
-          )
-
-          base64 -w0 "$env_file" | SSHPASS="$PROD_DEPLOY_PASSWORD" "${ssh_base[@]}" \
-            "ssh -o BatchMode=yes -o StrictHostKeyChecking=no '$PROD_DEPLOY_TARGET' 'umask 077; base64 -d > $remote_env_file; chmod 600 $remote_env_file'"
-
-          SSHPASS="$PROD_DEPLOY_PASSWORD" "${ssh_base[@]}" \
-            "ssh -o BatchMode=yes -o StrictHostKeyChecking=no '$PROD_DEPLOY_TARGET' \"umask 077; printf '%s\\n' 'PETCLINIC_ENV_FILE=$remote_env_file' 'FRONTEND_TLS_CERT_PATH=$PROD_FRONTEND_TLS_CERT_PATH' 'FRONTEND_TLS_KEY_PATH=$PROD_FRONTEND_TLS_KEY_PATH' 'FRONTEND_APP_ENV=production' 'FRONTEND_BACKEND_BASE_URL=same-origin' > '$remote_project_env'; chmod 600 '$remote_project_env'\""
-
-      - name: Deploy Docker Compose application to production
-        env:
-          PROD_DEPLOY_HOST: ${{ secrets.PROD_DEPLOY_HOST }}
-          PROD_DEPLOY_USER: ${{ secrets.PROD_DEPLOY_USER }}
-          PROD_DEPLOY_PASSWORD: ${{ secrets.PROD_DEPLOY_PASSWORD }}
-          PROD_DEPLOY_TARGET: ${{ secrets.PROD_DEPLOY_TARGET }}
-          PROD_DEPLOY_PATH: ${{ secrets.PROD_DEPLOY_PATH }}
-        run: |
-          set -euo pipefail
-          SSHPASS="$PROD_DEPLOY_PASSWORD" sshpass -e ssh \
-            -o StrictHostKeyChecking=no \
-            -o UserKnownHostsFile=/dev/null \
-            -o ProxyCommand='cloudflared access ssh --hostname %h' \
-            "$PROD_DEPLOY_USER@$PROD_DEPLOY_HOST" \
-            "ssh -o BatchMode=yes -o StrictHostKeyChecking=no '$PROD_DEPLOY_TARGET' \"PROD_DEPLOY_PATH='$PROD_DEPLOY_PATH' GITHUB_REF_NAME='$GITHUB_REF_NAME' bash -se\"" <<'REMOTE'
-          set -euo pipefail
-          cd "$PROD_DEPLOY_PATH"
-          git fetch origin "$GITHUB_REF_NAME"
-          git checkout "$GITHUB_REF_NAME"
-          git pull --ff-only origin "$GITHUB_REF_NAME"
-          docker_cmd="docker"
-          if ! docker info >/dev/null 2>&1; then
-            docker_cmd="sudo docker"
-          fi
-          $docker_cmd compose up -d --build
-          $docker_cmd compose ps
-          for attempt in $(seq 1 24); do
-            if curl -kfsS https://localhost/actuator/health; then
-              exit 0
-            fi
-            sleep 5
-          done
-          $docker_cmd compose logs --tail=100 app frontend
-          exit 1
-          REMOTE
+          IMAGE_TAG: ${{ github.sha }}
+          BACKEND_IMAGE: ${{ needs.docker.outputs.backend_image }}
+          FRONTEND_IMAGE: ${{ needs.docker.outputs.frontend_image }}
+          K8S_NAMESPACE: ${{ vars.PROD_K8S_NAMESPACE || 'devops-lab' }}
+          INGRESS_HOST: ${{ vars.PROD_INGRESS_HOST || 'guytho1996-petclinic.eastus2.cloudapp.azure.com' }}
+          SPRING_PROFILES_ACTIVE: ${{ secrets.PROD_SPRING_PROFILES_ACTIVE || 'postgres' }}
+          POSTGRES_URL: ${{ secrets.PROD_POSTGRES_URL }}
+          POSTGRES_USER: ${{ secrets.PROD_POSTGRES_USER }}
+          POSTGRES_PASS: ${{ secrets.PROD_POSTGRES_PASS }}
+          APP_CORS_ALLOWED_ORIGINS: ${{ secrets.PROD_APP_CORS_ALLOWED_ORIGINS || 'https://guytho1996-petclinic.eastus2.cloudapp.azure.com' }}
+          FRONTEND_APP_ENV: production
+          FRONTEND_BACKEND_BASE_URL: same-origin
+          SMOKE_TEST_URL: ${{ secrets.PROD_SMOKE_TEST_URL }}
+        run: ./scripts/deploy-k8s-rolling-update.sh
