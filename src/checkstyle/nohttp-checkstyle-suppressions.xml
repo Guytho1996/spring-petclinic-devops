@@ -7,5 +7,7 @@
 	<suppress files="node[\\/].*" checks=".*"/>
 	<suppress files="build[\\/].*" checks=".*"/>
 	<suppress files="target[\\/].*" checks=".*"/>
+	<suppress files="monitoring[\\/].*" checks="NoHttp"/>
+	<suppress files="k8s[\\/]monitoring.yaml" checks="NoHttp"/>
 	<suppress files=".+\.(jar|git|ico|p12|gif|jks|jpg|svg|log)" checks="NoHttp"/>
 </suppressions>

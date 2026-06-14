@@ -26,6 +26,10 @@ spec:
         app: petclinic
         component: backend
         version: "IMAGE_TAG"
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/actuator/prometheus"
+        prometheus.io/port: "8080"
     spec:
       terminationGracePeriodSeconds: 30
       containers:
