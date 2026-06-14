@@ -7,6 +7,6 @@ data:
   SPRING_PROFILES_ACTIVE: "postgres"
   database: "postgres"
   POSTGRES_URL: "jdbc:postgresql://petclinic-dev-pg-20260613.postgres.database.azure.com:5432/petclinic_dev?sslmode=require"
-  APP_CORS_ALLOWED_ORIGINS: "https://guytho1996.github.io"
+  APP_CORS_ALLOWED_ORIGINS: "https://guytho1996-petclinic-dev.eastus2.cloudapp.azure.com,https://guytho1996-petclinic.eastus2.cloudapp.azure.com"
   FRONTEND_APP_ENV: "production"
   FRONTEND_BACKEND_BASE_URL: "same-origin"

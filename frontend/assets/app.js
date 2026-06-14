@@ -43,7 +43,7 @@
     }
   }
   else {
-    setStatus("bad", "Backend no configurado", "Defina PAGES_BACKEND_BASE_URL para enlazar la API.");
+    setStatus("bad", "Backend no configurado", "Defina FRONTEND_BACKEND_BASE_URL para enlazar la API.");
   }
 
   elements.refreshHealth.addEventListener("click", function () {
@@ -53,7 +53,7 @@
     }
     const healthUrl = backendBaseUrl + "/actuator/health";
     if (!canFetchFromCurrentPage(healthUrl)) {
-      setStatus("", "Health no consultable", "El navegador bloquea health HTTP desde GitHub Pages HTTPS.");
+      setStatus("", "Health no consultable", "El navegador bloquea health HTTP desde una pagina HTTPS.");
       return;
     }
     checkHealth(healthUrl);

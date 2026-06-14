@@ -160,7 +160,7 @@
       <div id="mixed-content-alert" class="alert-box warning">
         <div class="alert-box-title">Restricción de Contenido Mixto o CORS Detectada</div>
         <div class="alert-box-desc">
-          Si el backend está configurado en HTTP (por ejemplo, el puerto 8080 de la IP pública) y estás accediendo desde un frontend en HTTPS (GitHub Pages), el navegador bloqueará la consulta <code>fetch</code> por seguridad de Contenido Mixto (Mixed Content) o por falta de cabeceras CORS. 
+          Si el backend está configurado en HTTP (por ejemplo, el puerto 8080 de la IP pública) y estás accediendo desde un frontend en HTTPS, el navegador bloqueará la consulta <code>fetch</code> por seguridad de Contenido Mixto (Mixed Content) o por falta de cabeceras CORS.
           <br><br>
           Para solucionarlo, puedes abrir el endpoint directamente en tu navegador haciendo clic en el botón de abajo:
           <div style="margin-top: 14px;">
@@ -265,7 +265,7 @@
 
         if (!backendBaseUrl) {
           metaUrlEl.textContent = 'No configurada';
-          setErrorStatus('Backend no configurado. Defina PAGES_BACKEND_BASE_URL con una URL publica HTTPS.');
+          setErrorStatus('Backend no configurado. Defina FRONTEND_BACKEND_BASE_URL con una URL publica HTTPS o same-origin.');
           return;
         }
 
@@ -280,7 +280,7 @@
 
         // Si la página se carga sobre HTTPS y el backend es HTTP, mostrar advertencia de contenido mixto
         if (window.location.protocol === 'https:' && targetUrl.startsWith('http' + '://')) {
-          setErrorStatus('Consulta bloqueada: GitHub Pages usa HTTPS y el backend configurado usa HTTP.');
+          setErrorStatus('Consulta bloqueada: la pagina usa HTTPS y el backend configurado usa HTTP.');
           return;
         }
 

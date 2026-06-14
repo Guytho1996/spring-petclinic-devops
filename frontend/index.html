@@ -25,11 +25,11 @@
     <main>
       <section class="status-band" aria-labelledby="status-title">
         <div class="status-copy">
-          <p class="eyebrow">GitHub Pages</p>
+          <p class="eyebrow">Azure deployment</p>
           <h1 id="status-title">Petclinic UI</h1>
           <p>
-            Capa web estatica para el entorno publicado. El backend Spring Boot se mantiene
-            separado y se consume por URL publica.
+            Capa web estatica para el entorno publicado. Nginx sirve el frontend
+            y redirige las rutas de Spring Boot en el mismo host de Azure.
           </p>
         </div>
         <div class="status-panel" aria-live="polite">
@@ -44,8 +44,8 @@
       <section class="grid" aria-label="Estado del despliegue">
         <article class="tile">
           <span class="tile-label">Frontend</span>
-          <strong>GitHub Pages</strong>
-          <p id="frontend-url">Publicado desde artifact estatico.</p>
+          <strong>Azure Nginx</strong>
+          <p id="frontend-url">Publicado por Docker Compose.</p>
         </article>
         <article class="tile">
           <span class="tile-label">Backend</span>
