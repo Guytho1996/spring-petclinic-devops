@@ -5,16 +5,16 @@ metadata:
   namespace: devops-lab
   annotations:
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
-    # Whitelist to only allow the external Prometheus server IP
-    nginx.ingress.kubernetes.io/whitelist-source-range: "129.159.70.134"
+    # Allow external Prometheus server IP and internal cluster networks (SNAT)
+    nginx.ingress.kubernetes.io/whitelist-source-range: "129.159.70.134,10.42.0.0/16,10.43.0.0/16,10.0.0.0/8"
 spec:
   ingressClassName: nginx
   tls:
   - hosts:
-    - petclinic.local
+    - guytho1996-petclinic.eastus2.cloudapp.azure.com
     secretName: petclinic-frontend-tls
   rules:
-  - host: petclinic.local
+  - host: guytho1996-petclinic.eastus2.cloudapp.azure.com
     http:
       paths:
       - path: /actuator/prometheus
