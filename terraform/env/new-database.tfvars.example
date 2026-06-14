@@ -1,0 +1,34 @@
+# Ejemplo para crear un ambiente nuevo con PostgreSQL administrado por Terraform.
+# Copiar a env/<ambiente>.tfvars, ajustar nombres/CIDR y ejecutar con un backend
+# cuyo key sea unico para ese ambiente.
+
+subscription_id     = "00000000-0000-0000-0000-000000000000"
+location            = "eastus2"
+project_name        = "petclinic"
+environment         = "review"
+resource_group_name = "petclinic-review-rg"
+
+vnet_address_space = ["10.44.0.0/16"]
+aks_subnet_cidr    = "10.44.1.0/24"
+aks_service_cidr   = "10.45.0.0/16"
+aks_dns_service_ip = "10.45.0.10"
+aks_node_count     = 1
+aks_node_vm_size   = "Standard_B2s"
+aks_sku_tier       = "Free"
+acr_sku            = "Basic"
+
+postgres_server_mode           = "create"
+postgres_server_name           = null
+postgres_version               = "16"
+postgres_sku_name              = "B_Standard_B1ms"
+postgres_storage_mb            = 32768
+postgres_backup_retention_days = 7
+postgres_auto_grow_enabled     = false
+
+db_name           = "petclinic_review"
+db_admin_username = "petclinicadmin"
+
+tags = {
+  Owner  = "fabrica-software"
+  Course = "devops"
+}

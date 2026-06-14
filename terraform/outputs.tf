@@ -49,13 +49,13 @@ output "acr_login_server" {
 }
 
 output "postgres_server_name" {
-  description = "Nombre del Azure Database for PostgreSQL Flexible Server existente."
-  value       = data.azurerm_postgresql_flexible_server.existing.name
+  description = "Nombre del Azure Database for PostgreSQL Flexible Server usado por la aplicacion."
+  value       = local.postgres_server_name
 }
 
 output "postgres_fqdn" {
-  description = "FQDN del PostgreSQL Flexible Server existente."
-  value       = data.azurerm_postgresql_flexible_server.existing.fqdn
+  description = "FQDN del PostgreSQL Flexible Server usado por la aplicacion."
+  value       = local.postgres_fqdn
 }
 
 output "postgres_database_name" {
@@ -63,9 +63,14 @@ output "postgres_database_name" {
   value       = var.db_name
 }
 
+output "postgres_database_id" {
+  description = "ID de la base PostgreSQL cuando Terraform la administra; null cuando solo referencia una base existente."
+  value       = try(azurerm_postgresql_flexible_server_database.app[0].id, null)
+}
+
 output "postgres_jdbc_url" {
   description = "JDBC URL para configurar POSTGRES_URL en Kubernetes o GitHub Actions."
-  value       = "jdbc:postgresql://${data.azurerm_postgresql_flexible_server.existing.fqdn}:5432/${var.db_name}?sslmode=require"
+  value       = "jdbc:postgresql://${local.postgres_fqdn}:5432/${var.db_name}?sslmode=require"
 }
 
 output "postgres_admin_username" {

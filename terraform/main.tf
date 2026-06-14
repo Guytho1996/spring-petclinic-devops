@@ -24,6 +24,9 @@ locals {
   resource_group_name = coalesce(var.resource_group_name, "${local.name_prefix}-rg")
   acr_name            = substr("acr${local.compact_project}${local.compact_environment}${random_string.suffix.result}", 0, 50)
   storage_name        = substr("st${local.compact_project}${local.compact_environment}${random_string.suffix.result}", 0, 24)
+  postgres_name       = coalesce(var.postgres_server_name, substr("pg${local.compact_project}${local.compact_environment}${random_string.suffix.result}", 0, 63))
+
+  manage_postgres_database = var.postgres_server_mode == "create" || var.manage_postgres_database
 
   tags = merge(
     var.tags,
@@ -141,13 +144,82 @@ resource "azurerm_role_assignment" "aks_acr_pull" {
 
 # Azure equivalent of RDS PostgreSQL.
 data "azurerm_postgresql_flexible_server" "existing" {
+  count = var.postgres_server_mode == "existing" ? 1 : 0
+
   name                = var.existing_postgres_server_name
   resource_group_name = var.existing_postgres_resource_group_name
 }
 
+resource "azurerm_postgresql_flexible_server" "main" {
+  count = var.postgres_server_mode == "create" ? 1 : 0
+
+  name                          = local.postgres_name
+  resource_group_name           = azurerm_resource_group.main.name
+  location                      = azurerm_resource_group.main.location
+  version                       = var.postgres_version
+  administrator_login           = var.db_admin_username
+  administrator_password        = var.postgres_admin_password
+  sku_name                      = var.postgres_sku_name
+  storage_mb                    = var.postgres_storage_mb
+  storage_tier                  = var.postgres_storage_tier
+  backup_retention_days         = var.postgres_backup_retention_days
+  geo_redundant_backup_enabled  = var.postgres_geo_redundant_backup_enabled
+  auto_grow_enabled             = var.postgres_auto_grow_enabled
+  public_network_access_enabled = true
+  zone                          = var.postgres_zone
+  tags                          = local.tags
+
+  authentication {
+    active_directory_auth_enabled = false
+    password_auth_enabled         = true
+  }
+
+  lifecycle {
+    prevent_destroy = true
+
+    precondition {
+      condition     = var.postgres_admin_password != null
+      error_message = "postgres_admin_password debe definirse cuando postgres_server_mode = \"create\". Usar TF_VAR_postgres_admin_password para no escribirlo en tfvars."
+    }
+  }
+}
+
+locals {
+  postgres_server_id = (
+    var.postgres_server_mode == "create"
+    ? azurerm_postgresql_flexible_server.main[0].id
+    : data.azurerm_postgresql_flexible_server.existing[0].id
+  )
+
+  postgres_server_name = (
+    var.postgres_server_mode == "create"
+    ? azurerm_postgresql_flexible_server.main[0].name
+    : data.azurerm_postgresql_flexible_server.existing[0].name
+  )
+
+  postgres_fqdn = (
+    var.postgres_server_mode == "create"
+    ? azurerm_postgresql_flexible_server.main[0].fqdn
+    : data.azurerm_postgresql_flexible_server.existing[0].fqdn
+  )
+}
+
+resource "azurerm_postgresql_flexible_server_database" "app" {
+  count = local.manage_postgres_database ? 1 : 0
+
+  name      = var.db_name
+  server_id = local.postgres_server_id
+  charset   = var.postgres_database_charset
+  collation = var.postgres_database_collation
+
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+
 resource "azurerm_postgresql_flexible_server_firewall_rule" "aks_outbound" {
   name             = "${local.name_prefix}-aks-outbound"
-  server_id        = data.azurerm_postgresql_flexible_server.existing.id
+  server_id        = local.postgres_server_id
   start_ip_address = azurerm_public_ip.aks_outbound.ip_address
   end_ip_address   = azurerm_public_ip.aks_outbound.ip_address
 }

@@ -1,0 +1,6 @@
+resource_group_name  = "rg-tfstate-petclinic-prod"
+storage_account_name = "sttfpetclinicprod39iejn"
+container_name       = "tfstate"
+key                  = "review/petclinic.tfstate"
+subscription_id      = "f51eb020-d024-4010-be44-279b64c4e2cc"
+use_azuread_auth     = true

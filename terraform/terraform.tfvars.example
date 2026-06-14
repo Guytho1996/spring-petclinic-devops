@@ -10,10 +10,24 @@ aks_node_count   = 2
 aks_node_vm_size = "Standard_B2s"
 acr_sku          = "Basic"
 
-existing_postgres_server_name          = "petclinic-dev-pg-20260613"
-existing_postgres_resource_group_name  = "dev-ops"
-db_name                                = "petclinic_dev"
-db_admin_username                      = "petclinicadmin"
+postgres_server_mode = "existing"
+
+existing_postgres_server_name         = "petclinic-dev-pg-20260613"
+existing_postgres_resource_group_name = "dev-ops"
+db_name                               = "petclinic_dev"
+db_admin_username                     = "petclinicadmin"
+
+# Para crear un PostgreSQL nuevo con Terraform:
+#
+# postgres_server_mode          = "create"
+# postgres_server_name          = null
+# postgres_version              = "16"
+# postgres_sku_name             = "B_Standard_B1ms"
+# postgres_storage_mb           = 32768
+# postgres_backup_retention_days = 7
+#
+# No escribir el password aqui. Usar:
+# export TF_VAR_postgres_admin_password='<password-seguro>'
 
 tags = {
   Owner  = "fabrica-software"

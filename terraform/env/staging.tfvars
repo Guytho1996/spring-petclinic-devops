@@ -13,6 +13,10 @@ aks_node_vm_size   = "Standard_B2s"
 aks_sku_tier       = "Free"
 acr_sku            = "Basic"
 
+# Staging usa el PostgreSQL existente. Para crear uno nuevo, cambiar a create
+# y pasar TF_VAR_postgres_admin_password desde un secret.
+postgres_server_mode = "existing"
+
 existing_postgres_server_name         = "petclinic-dev-pg-20260613"
 existing_postgres_resource_group_name = "dev-ops"
 db_name                               = "petclinic_dev"
