@@ -1,0 +1,10 @@
+# Copiar como backend.hcl despues de ejecutar terraform/bootstrap.
+# No commitear backend.hcl si contiene datos sensibles o de un tenant privado.
+
+storage_account_name = "sttfpetclinicprod000001"
+container_name       = "tfstate"
+key                  = "prod/petclinic.tfstate"
+
+# Autenticacion recomendada: Microsoft Entra ID.
+# Para uso local, ejecutar primero: az login
+use_azuread_auth = true

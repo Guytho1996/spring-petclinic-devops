@@ -38,3 +38,13 @@ build/
 *.env
 *.local
 k8s/*secret*.local.yaml
+
+### Terraform local state, plans, and secrets ###
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+terraform/backend*.hcl
+!terraform/backend.hcl.example
+terraform/terraform.tfvars
+terraform/bootstrap/terraform.tfvars

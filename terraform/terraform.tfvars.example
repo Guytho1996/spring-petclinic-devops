@@ -1,0 +1,21 @@
+# Copiar como terraform.tfvars para ejecucion local.
+# No commitear terraform.tfvars real porque puede contener secretos.
+
+subscription_id = "00000000-0000-0000-0000-000000000000"
+location        = "eastus2"
+project_name    = "petclinic"
+environment     = "staging"
+
+aks_node_count   = 2
+aks_node_vm_size = "Standard_B2s"
+acr_sku          = "Basic"
+
+existing_postgres_server_name          = "petclinic-dev-pg-20260613"
+existing_postgres_resource_group_name  = "dev-ops"
+db_name                                = "petclinic_dev"
+db_admin_username                      = "petclinicadmin"
+
+tags = {
+  Owner  = "fabrica-software"
+  Course = "devops"
+}
