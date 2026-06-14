@@ -259,7 +259,7 @@ jobs:
           docker compose up -d --build
           docker compose ps
           for attempt in $(seq 1 24); do
-            if curl -fsS http://localhost:8080/actuator/health; then
+            if curl -kfsS https://localhost/actuator/health; then
               exit 0
             fi
             sleep 5
@@ -374,7 +374,7 @@ jobs:
           $docker_cmd compose up -d --build
           $docker_cmd compose ps
           for attempt in $(seq 1 24); do
-            if curl -fsS http://localhost:8080/actuator/health; then
+            if curl -kfsS https://localhost/actuator/health; then
               exit 0
             fi
             sleep 5
