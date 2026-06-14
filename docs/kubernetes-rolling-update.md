@@ -9,10 +9,13 @@ En este repositorio el despliegue se divide en dos Deployments:
 - `petclinic-backend`: Spring Boot, puerto 8080.
 - `petclinic-frontend`: Nginx, puerto 80.
 
-Ambos usan `strategy.type: RollingUpdate` con `maxUnavailable: 0` y
-`maxSurge: 1`. Esto mantiene la capacidad actual mientras Kubernetes crea un
-pod nuevo, espera a que su `readinessProbe` pase y luego elimina un pod de la
-version anterior.
+El `petclinic-backend` usa `strategy.type: RollingUpdate` con
+`maxUnavailable: 1` y `maxSurge: 0`. En el cluster staging de un solo nodo esto
+evita depender de capacidad extra para crear pods temporales durante el
+despliegue, manteniendo al menos una replica disponible.
+
+El `petclinic-frontend` usa `maxUnavailable: 0` y `maxSurge: 1`, ya que sus
+requests son pequenos y el surge cabe en el nodo actual.
 
 ## Ejecucion desde CI/CD
 

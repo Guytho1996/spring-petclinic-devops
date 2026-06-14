@@ -46,6 +46,18 @@ trap 'rm -rf "$rendered_dir"' EXIT
 
 echo "Deploying ${BACKEND_IMAGE}:${IMAGE_TAG} and ${FRONTEND_IMAGE}:${IMAGE_TAG} to namespace ${K8S_NAMESPACE}"
 
+rollout_status() {
+  local deployment_name="$1"
+
+  if ! "$KUBECTL_BIN" -n "$K8S_NAMESPACE" rollout status "deployment/${deployment_name}" --timeout="$ROLLOUT_TIMEOUT"; then
+    echo "Rollout failed for deployment/${deployment_name}; collecting Kubernetes diagnostics" >&2
+    "$KUBECTL_BIN" -n "$K8S_NAMESPACE" describe "deployment/${deployment_name}" >&2 || true
+    "$KUBECTL_BIN" -n "$K8S_NAMESPACE" get deploy,rs,pods,hpa,pdb -o wide >&2 || true
+    "$KUBECTL_BIN" -n "$K8S_NAMESPACE" get events --sort-by=.lastTimestamp >&2 || true
+    return 1
+  fi
+}
+
 "$KUBECTL_BIN" create namespace "$K8S_NAMESPACE" --dry-run=client -o yaml | "$KUBECTL_BIN" apply -f -
 
 "$KUBECTL_BIN" -n "$K8S_NAMESPACE" create configmap petclinic-config \
@@ -88,8 +100,8 @@ done
 "$KUBECTL_BIN" -n "$K8S_NAMESPACE" set image deployment/petclinic-frontend \
   "frontend=${FRONTEND_IMAGE}:${IMAGE_TAG}"
 
-"$KUBECTL_BIN" -n "$K8S_NAMESPACE" rollout status deployment/petclinic-backend --timeout="$ROLLOUT_TIMEOUT"
-"$KUBECTL_BIN" -n "$K8S_NAMESPACE" rollout status deployment/petclinic-frontend --timeout="$ROLLOUT_TIMEOUT"
+rollout_status petclinic-backend
+rollout_status petclinic-frontend
 
 "$KUBECTL_BIN" -n "$K8S_NAMESPACE" get deploy,rs,pods,hpa,pdb
 
