@@ -14,7 +14,7 @@ aks_node_vm_size = "Standard_B2s"
 aks_sku_tier     = "Free"
 acr_sku          = "Basic"
 
-existing_postgres_server_name         = "petclinic-dev-pg-20260613"
+existing_postgres_server_name         = "petclinic-prod-pg-20260613"
 existing_postgres_resource_group_name = "dev-ops"
 db_name                               = "petclinic_prod"
 db_admin_username                     = "petclinicadmin"

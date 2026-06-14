@@ -11,10 +11,10 @@ Implementacion IaC para la tarea del proyecto integrador, usando servicios equiv
 | Registry de imagenes | ECR / GHCR | Azure Container Registry (`azurerm_container_registry`) |
 | Observabilidad base | CloudWatch | Log Analytics + Azure Monitor para AKS |
 
-La base de datos no se crea de nuevo: Terraform referencia el servidor existente `petclinic-dev-pg-20260613` en el resource group `dev-ops`.
+La base de datos no se crea de nuevo: Terraform referencia servidores PostgreSQL existentes en el resource group `dev-ops`.
 
-- Staging usa `petclinic_dev`
-- Production usa `petclinic_prod`
+- Staging usa `petclinic-dev-pg-20260613` / `petclinic_dev`
+- Production usa `petclinic-prod-pg-20260613` / `petclinic_prod`
 
 El password de PostgreSQL no se guarda en Terraform ni en el state. Debe vivir en GitHub Secrets, Kubernetes Secret o el gestor de secretos usado por el despliegue.
 
