@@ -74,7 +74,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "100 * (1 - (sum(increase(http_server_requests_seconds_count{status=~\"5..\"}[$__range])) / clamp_min(sum(increase(http_server_requests_seconds_count[$__range])), 1)))",
+          "expr": "100 * (1 - ((sum(increase(http_server_requests_seconds_count{status=~\"5..\"}[$__range])) or vector(0)) / clamp_min(sum(increase(http_server_requests_seconds_count[$__range])), 1)))",
           "instant": true,
           "legendFormat": "Availability",
           "range": false,
@@ -149,7 +149,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "clamp_min(100 * (1 - ((sum(increase(http_server_requests_seconds_count{status=~\"5..\"}[$__range])) / clamp_min(sum(increase(http_server_requests_seconds_count[$__range])), 1)) / 0.001)), 0)",
+          "expr": "clamp_min(100 * (1 - (((sum(increase(http_server_requests_seconds_count{status=~\"5..\"}[$__range])) or vector(0)) / clamp_min(sum(increase(http_server_requests_seconds_count[$__range])), 1)) / 0.001)), 0)",
           "instant": true,
           "legendFormat": "Error budget remaining",
           "range": false,
@@ -224,7 +224,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "100 * (sum(rate(http_server_requests_seconds_count{status=~\"5..\"}[5m])) / clamp_min(sum(rate(http_server_requests_seconds_count[5m])), 0.001))",
+          "expr": "100 * ((sum(rate(http_server_requests_seconds_count{status=~\"5..\"}[5m])) or vector(0)) / clamp_min(sum(rate(http_server_requests_seconds_count[5m])), 0.001))",
           "instant": true,
           "legendFormat": "5xx %",
           "range": false,
@@ -500,7 +500,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "100 * (sum(rate(http_server_requests_seconds_count{status=~\"5..\"}[5m])) / clamp_min(sum(rate(http_server_requests_seconds_count[5m])), 0.001))",
+          "expr": "100 * ((sum(rate(http_server_requests_seconds_count{status=~\"5..\"}[5m])) or vector(0)) / clamp_min(sum(rate(http_server_requests_seconds_count[5m])), 0.001))",
           "legendFormat": "5xx %",
           "range": true,
           "refId": "A"
@@ -708,7 +708,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "(sum(rate(http_server_requests_seconds_count{status=~\"5..\"}[5m])) / clamp_min(sum(rate(http_server_requests_seconds_count[5m])), 0.001)) / 0.001",
+          "expr": "((sum(rate(http_server_requests_seconds_count{status=~\"5..\"}[5m])) or vector(0)) / clamp_min(sum(rate(http_server_requests_seconds_count[5m])), 0.001)) / 0.001",
           "legendFormat": "burn rate vs 99.9% SLO",
           "range": true,
           "refId": "A"
@@ -950,6 +950,6 @@
   "timezone": "browser",
   "title": "Spring Petclinic - SLO Dashboard",
   "uid": "spring-petclinic-slo",
-  "version": 1,
+  "version": 2,
   "weekStart": ""
 }
