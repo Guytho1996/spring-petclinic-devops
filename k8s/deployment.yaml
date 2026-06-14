@@ -8,6 +8,9 @@ metadata:
     component: backend
 spec:
   replicas: 2
+  revisionHistoryLimit: 5
+  progressDeadlineSeconds: 600
+  minReadySeconds: 10
   selector:
     matchLabels:
       app: petclinic
@@ -24,6 +27,7 @@ spec:
         component: backend
         version: "IMAGE_TAG"
     spec:
+      terminationGracePeriodSeconds: 30
       containers:
       - name: backend
         image: ghcr.io/guytho1996/spring-petclinic-devops:IMAGE_TAG
@@ -38,18 +42,32 @@ spec:
           requests:
             cpu: "250m"
             memory: "256Mi"
+        lifecycle:
+          preStop:
+            exec:
+              command: ["/bin/sh", "-c", "sleep 10"]
+        startupProbe:
+          httpGet:
+            path: /actuator/health/liveness
+            port: 8080
+          periodSeconds: 5
+          failureThreshold: 30
         livenessProbe:
           httpGet:
             path: /actuator/health/liveness
             port: 8080
           initialDelaySeconds: 30
           periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
         readinessProbe:
           httpGet:
             path: /actuator/health/readiness
             port: 8080
           initialDelaySeconds: 30
           periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
         envFrom:
         - configMapRef:
             name: petclinic-config

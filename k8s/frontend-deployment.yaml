@@ -8,6 +8,9 @@ metadata:
     component: frontend
 spec:
   replicas: 2
+  revisionHistoryLimit: 5
+  progressDeadlineSeconds: 300
+  minReadySeconds: 5
   selector:
     matchLabels:
       app: petclinic
@@ -24,6 +27,7 @@ spec:
         component: frontend
         version: "IMAGE_TAG"
     spec:
+      terminationGracePeriodSeconds: 15
       containers:
       - name: frontend
         image: ghcr.io/guytho1996/spring-petclinic-devops-frontend:IMAGE_TAG
@@ -38,18 +42,32 @@ spec:
           requests:
             cpu: "50m"
             memory: "64Mi"
+        lifecycle:
+          preStop:
+            exec:
+              command: ["/bin/sh", "-c", "sleep 5"]
+        startupProbe:
+          httpGet:
+            path: /healthz
+            port: 80
+          periodSeconds: 5
+          failureThreshold: 12
         livenessProbe:
           httpGet:
             path: /healthz
             port: 80
           initialDelaySeconds: 10
           periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
         readinessProbe:
           httpGet:
             path: /
             port: 80
           initialDelaySeconds: 5
           periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
         env:
         - name: FRONTEND_GIT_SHA
           value: "IMAGE_TAG"
