@@ -36,6 +36,19 @@ scrape_configs:
           service: petclinic-backend
           environment: development
 
+  - job_name: kube-state-metrics-production
+    scheme: https
+    metrics_path: /kube-state-metrics/metrics
+    scrape_interval: 15s
+    tls_config:
+      insecure_skip_verify: true
+    static_configs:
+      - targets: ['guytho1996-petclinic.eastus2.cloudapp.azure.com:443']
+        labels:
+          application: spring-petclinic
+          service: kube-state-metrics
+          environment: production
+
   - job_name: 'dora-exporter'
     metrics_path: '/metrics'
     scrape_interval: 10s

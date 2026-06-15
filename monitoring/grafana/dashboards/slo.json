@@ -878,14 +878,14 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "count(up{job=~\"petclinic.*\"} == 1)",
+          "expr": "kube_deployment_status_replicas_available{namespace=\"devops-lab\", deployment=\"petclinic-backend\"}",
           "instant": true,
           "legendFormat": "active",
           "range": false,
           "refId": "A"
         }
       ],
-      "title": "Active Backend Pods / Targets",
+      "title": "Available Backend Pods",
       "type": "stat"
     },
     {

@@ -77,6 +77,32 @@ data:
           - target_label: environment
             replacement: kubernetes
 
+      - job_name: kube-state-metrics
+        metrics_path: /metrics
+        scrape_interval: 15s
+        kubernetes_sd_configs:
+          - role: endpoints
+            namespaces:
+              names:
+                - devops-lab
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_service_name]
+            action: keep
+            regex: kube-state-metrics
+          - source_labels: [__meta_kubernetes_endpoint_port_name]
+            action: keep
+            regex: http-metrics
+          - source_labels: [__meta_kubernetes_pod_name]
+            target_label: pod
+          - source_labels: [__meta_kubernetes_namespace]
+            target_label: namespace
+          - target_label: application
+            replacement: spring-petclinic
+          - target_label: service
+            replacement: kube-state-metrics
+          - target_label: environment
+            replacement: kubernetes
+
   petclinic-slo.yml: |
     groups:
       - name: petclinic-slo
@@ -283,8 +309,8 @@ data:
           "gridPos": {"h": 5, "w": 8, "x": 16, "y": 0},
           "id": 3,
           "options": {"colorMode": "background", "graphMode": "area", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}},
-          "targets": [{"datasource": {"type": "prometheus", "uid": "prometheus"}, "editorMode": "code", "expr": "count(up{job=~\"petclinic.*\"} == 1)", "instant": true, "range": false, "refId": "A"}],
-          "title": "Active Backend Pods / Targets",
+          "targets": [{"datasource": {"type": "prometheus", "uid": "prometheus"}, "editorMode": "code", "expr": "kube_deployment_status_replicas_available{namespace=\"devops-lab\", deployment=\"petclinic-backend\"}", "instant": true, "range": false, "refId": "A"}],
+          "title": "Available Backend Pods",
           "type": "stat"
         },
         {
