@@ -60,3 +60,14 @@ Prometheus evaluates these alerts:
 - `PetclinicHttp5xxErrorRateHigh`: 5xx rate above 1% for 5 minutes.
 - `PetclinicErrorBudgetBurnFast`: 99.9% availability budget burning above 10x.
 - `PetclinicLatencyP99High`: P99 latency above 1 second for 10 minutes.
+
+## Incident Record and Blameless Postmortem
+
+The simulated incident used for the Proyecto Integrador is recorded in
+`monitoring/dora/incidents.json` so the DORA exporter can calculate CFR and
+MTTR.
+
+The Google SRE-style blameless postmortem is available at
+`docs/blameless-postmortem-inc-2026-06-15-001.md`. It includes impact,
+timeline, root cause, 5 Whys, and action items with owners, priorities, due
+dates, and measurable success criteria.

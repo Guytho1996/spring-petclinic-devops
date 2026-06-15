@@ -12,8 +12,112 @@
     "postmortem": {
       "summary": "Simulated incident for the Proyecto Integrador: the Grafana route exposed by Kubernetes did not match the external service configuration and required a corrective deployment.",
       "impact": "Dashboard access was degraded while the route/service mismatch was corrected.",
+      "postmortem_url": "docs/blameless-postmortem-inc-2026-06-15-001.md",
+      "trigger": "Kubernetes manifest changes adjusted the external Grafana service naming and ingress route configuration without an automated route-level validation gate.",
+      "detection": "Manual post-deploy verification of the public /grafana route. The deployment rollout was green, but the Grafana route was not covered by required smoke tests.",
       "root_cause": "The Kubernetes external-grafana service integration drifted from the route expected by the public ingress.",
-      "resolution": "Deployment 06e79dd updated the external Grafana configuration and restored dashboard access.",
+      "resolution": "Mitigation work associated with deployment 06e79dd restored dashboard access; durable follow-up 6dae69c normalized the production host and external Grafana service naming contract.",
+      "durable_follow_up_sha": "6dae69c0ae3ef175961b554163fb54991fd22df4",
+      "timeline": [
+        {
+          "timestamp": "2026-06-14T23:35:20Z",
+          "event": "Commit 3c40b28 added external-grafana-service and exposed /grafana through Ingress."
+        },
+        {
+          "timestamp": "2026-06-14T23:55:44Z",
+          "event": "Commit 7c15ca5 changed the Grafana service, endpoint, and ingress backend name to grafana."
+        },
+        {
+          "timestamp": "2026-06-15T00:18:05Z",
+          "event": "Public Grafana route failed post-deploy verification; incident opened as SEV2."
+        },
+        {
+          "timestamp": "2026-06-15T00:28:00Z",
+          "event": "Team identified that rollout status did not validate the external dashboard route."
+        },
+        {
+          "timestamp": "2026-06-15T00:46:31Z",
+          "event": "Public Grafana access restored; MTTR recorded for DORA."
+        },
+        {
+          "timestamp": "2026-06-15T02:11:35Z",
+          "event": "Commit 6dae69c made the durable manifest follow-up by normalizing production host and service naming."
+        }
+      ],
+      "five_whys": [
+        {
+          "why": "Why was Grafana unavailable through the public URL?",
+          "answer": "The public /grafana route did not resolve to the expected external Grafana backend after ingress/service configuration changes."
+        },
+        {
+          "why": "Why did the route point to an invalid or unexpected backend/host contract?",
+          "answer": "Multiple manifests controlled the Grafana route, service, endpoint, and redirect, and they were changed without one automated contract check covering all of them."
+        },
+        {
+          "why": "Why did the deployment pipeline allow that change to reach production?",
+          "answer": "The pipeline waited for backend/frontend rollout status, but rollout status does not prove that an external Ingress path is reachable."
+        },
+        {
+          "why": "Why was there no route-level validation?",
+          "answer": "The smoke-test design focused on the application path and treated observability routes as supporting infrastructure, not production-facing reliability dependencies."
+        },
+        {
+          "why": "Why was the observability route not treated as a release contract?",
+          "answer": "Ownership and acceptance criteria for externally exposed monitoring endpoints were not documented in the deployment runbook or CI/CD quality gates."
+        }
+      ],
+      "action_items": [
+        {
+          "id": "PM-2026-06-15-001-A1",
+          "priority": "P0",
+          "type": "Mitigate",
+          "owner": "DevOps/SRE owner",
+          "status": "Done",
+          "due_date": "2026-06-15",
+          "action": "Restore public Grafana route and normalize production host/service configuration.",
+          "success_criteria": "The public /grafana route returns a valid Grafana response or redirect."
+        },
+        {
+          "id": "PM-2026-06-15-001-A2",
+          "priority": "P0",
+          "type": "Prevent",
+          "owner": "DevOps/SRE owner",
+          "status": "Open",
+          "due_date": "2026-06-18",
+          "action": "Make post-deploy smoke tests mandatory for /, /grafana/, and the SLO dashboard URL in production.",
+          "success_criteria": "Production deploy fails automatically if any required route returns non-2xx/3xx or times out."
+        },
+        {
+          "id": "PM-2026-06-15-001-A3",
+          "priority": "P1",
+          "type": "Prevent",
+          "owner": "Platform owner",
+          "status": "Open",
+          "due_date": "2026-06-20",
+          "action": "Add Kubernetes manifest validation for Ingress backend service names and ports after rendering manifests.",
+          "success_criteria": "CI fails when an Ingress backend references a Service or port that is absent from the rendered manifests."
+        },
+        {
+          "id": "PM-2026-06-15-001-A4",
+          "priority": "P1",
+          "type": "Detect",
+          "owner": "Observability owner",
+          "status": "Open",
+          "due_date": "2026-06-21",
+          "action": "Add a blackbox HTTP probe and alert for the public Grafana route.",
+          "success_criteria": "Alert fires when /grafana/ is unavailable for more than 2 minutes."
+        },
+        {
+          "id": "PM-2026-06-15-001-A5",
+          "priority": "P2",
+          "type": "Prevent",
+          "owner": "DevOps/SRE owner",
+          "status": "Open",
+          "due_date": "2026-06-19",
+          "action": "Document the external Grafana route contract in monitoring/README.md.",
+          "success_criteria": "README lists the public URL, Kubernetes Service/Endpoints object names, expected host, and validation commands."
+        }
+      ],
       "follow_up": [
         "Add an automated smoke test for /grafana/ after production deploys.",
         "Keep Grafana service and ingress names covered by manifest validation.",
