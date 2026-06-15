@@ -4,28 +4,22 @@ metadata:
   name: grafana-root-redirect
   namespace: devops-lab
   annotations:
-    nginx.ingress.kubernetes.io/temporal-redirect: https://petclinic.local/grafana/dashboards
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/temporal-redirect: https://guytho1996-petclinic.eastus2.cloudapp.azure.com/grafana/dashboards
 spec:
   ingressClassName: nginx
   tls:
   - hosts:
-    - petclinic.local
+    - guytho1996-petclinic.eastus2.cloudapp.azure.com
     secretName: petclinic-frontend-tls
   rules:
-  - host: petclinic.local
+  - host: guytho1996-petclinic.eastus2.cloudapp.azure.com
     http:
       paths:
-      - path: /grafana
-        pathType: Exact
+      - path: /grafana/?$
+        pathType: ImplementationSpecific
         backend:
           service:
-            name: grafana
-            port:
-              number: 3000
-      - path: /grafana/
-        pathType: Exact
-        backend:
-          service:
-            name: grafana
+            name: external-grafana-service
             port:
               number: 3000

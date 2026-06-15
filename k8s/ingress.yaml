@@ -7,10 +7,10 @@ spec:
   ingressClassName: nginx
   tls:
   - hosts:
-    - petclinic.local
+    - guytho1996-petclinic.eastus2.cloudapp.azure.com
     secretName: petclinic-frontend-tls
   rules:
-  - host: petclinic.local
+  - host: guytho1996-petclinic.eastus2.cloudapp.azure.com
     http:
       paths:
       - path: /
@@ -24,6 +24,6 @@ spec:
         pathType: Prefix
         backend:
           service:
-            name: grafana
+            name: external-grafana-service
             port:
               number: 3000
