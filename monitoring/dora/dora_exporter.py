@@ -6,15 +6,16 @@ from __future__ import annotations
 import html
 import json
 import os
+import re
 import statistics
 import threading
 import time
-import urllib.error
 import urllib.parse
-import urllib.request
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+
+import requests
 
 
 OWNER = os.getenv("DORA_GITHUB_OWNER", "Guytho1996")
@@ -25,12 +26,18 @@ PORT = int(os.getenv("DORA_EXPORTER_PORT", "9108"))
 CACHE_SECONDS = int(os.getenv("DORA_CACHE_SECONDS", "45"))
 INCIDENTS_FILE = Path(os.getenv("DORA_INCIDENTS_FILE", Path(__file__).with_name("incidents.json")))
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN") or os.getenv("GH_TOKEN")
+GITHUB_API_HOST = "api.github.com"
 USER_AGENT = "petclinic-dora-exporter/1.0"
+SAFE_REPO_PART = re.compile(r"^[A-Za-z0-9_.-]+$")
 
 _cache_lock = threading.Lock()
 _cache: dict[str, object] = {"expires_at": 0.0, "payload": None, "error": None}
 _status_cache: dict[int, list[dict[str, object]]] = {}
 _commit_cache: dict[str, datetime] = {}
+
+
+class GitHubApiError(RuntimeError):
+    """Raised when the fixed GitHub API endpoint returns an error."""
 
 
 def parse_ts(value: str | None) -> datetime | None:
@@ -45,9 +52,20 @@ def iso(value: datetime | None) -> str | None:
     return value.astimezone(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
+def github_resource(path: str, params: dict[str, str] | None = None) -> str:
+    if not SAFE_REPO_PART.fullmatch(OWNER) or not SAFE_REPO_PART.fullmatch(REPO):
+        raise ValueError("GitHub owner and repo must contain only letters, digits, dots, underscores, or dashes")
+    if not path.startswith("/") or "://" in path or "?" in path or "#" in path:
+        raise ValueError("GitHub API path must be a relative path")
+
+    resource = f"/repos/{OWNER}/{REPO}{path}"
+    if params:
+        resource = f"{resource}?{urllib.parse.urlencode(params)}"
+    return resource
+
+
 def github_get(path: str, params: dict[str, str] | None = None) -> object:
-    query = f"?{urllib.parse.urlencode(params)}" if params else ""
-    url = f"https://api.github.com/repos/{OWNER}/{REPO}{path}{query}"
+    url = f"https://{GITHUB_API_HOST}{github_resource(path, params)}"
     headers = {
         "Accept": "application/vnd.github+json",
         "User-Agent": USER_AGENT,
@@ -55,9 +73,13 @@ def github_get(path: str, params: dict[str, str] | None = None) -> object:
     }
     if GITHUB_TOKEN:
         headers["Authorization"] = f"Bearer {GITHUB_TOKEN}"
-    request = urllib.request.Request(url, headers=headers)
-    with urllib.request.urlopen(request, timeout=15) as response:
-        return json.loads(response.read().decode("utf-8"))
+
+    try:
+        response = requests.get(url, headers=headers, timeout=15)
+        response.raise_for_status()
+        return response.json()
+    except requests.RequestException as exc:
+        raise GitHubApiError(f"GitHub API request failed: {exc}") from exc
 
 
 def load_incidents() -> list[dict[str, object]]:
@@ -608,7 +630,7 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_body(200, render_metrics(get_payload()), "text/plain")
                 return
             self.send_body(404, json.dumps({"error": "not found", "path": html.escape(parsed.path)}), "application/json")
-        except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError, ValueError) as exc:
+        except (GitHubApiError, OSError, TimeoutError, ValueError, json.JSONDecodeError) as exc:
             self.send_body(502, json.dumps({"ok": False, "error": str(exc)}), "application/json")
 
     def log_message(self, fmt: str, *args: object) -> None:
