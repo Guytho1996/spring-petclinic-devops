@@ -1,0 +1,24 @@
+[
+  {
+    "id": "INC-2026-06-15-001",
+    "title": "External Grafana routing mismatch after production deployment",
+    "environment": "production",
+    "severity": "sev2",
+    "detected_at": "2026-06-15T00:18:05Z",
+    "restored_at": "2026-06-15T00:46:31Z",
+    "caused_by_deployment_sha": "7c15ca52dfc34edfb3da8d7742b9b02b8ef41b79",
+    "recovery_deployment_sha": "06e79dd22022bc4be254af6f3094646b686a9f35",
+    "rollback_required": false,
+    "postmortem": {
+      "summary": "Simulated incident for the Proyecto Integrador: the Grafana route exposed by Kubernetes did not match the external service configuration and required a corrective deployment.",
+      "impact": "Dashboard access was degraded while the route/service mismatch was corrected.",
+      "root_cause": "The Kubernetes external-grafana service integration drifted from the route expected by the public ingress.",
+      "resolution": "Deployment 06e79dd updated the external Grafana configuration and restored dashboard access.",
+      "follow_up": [
+        "Add an automated smoke test for /grafana/ after production deploys.",
+        "Keep Grafana service and ingress names covered by manifest validation.",
+        "Record production incidents in this file so CFR and MTTR stay auditable."
+      ]
+    }
+  }
+]

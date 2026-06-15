@@ -10,12 +10,38 @@ scrape_configs:
     static_configs:
       - targets: ['localhost:9090']
 
-  - job_name: 'petclinic-app'
-    metrics_path: '/actuator/prometheus'
-    scrape_interval: 5s
+  - job_name: petclinic-production
+    scheme: https
+    metrics_path: /actuator/prometheus
+    scrape_interval: 15s
+    tls_config:
+      insecure_skip_verify: true
     static_configs:
-      - targets: ['app:8080']
+      - targets: ['guytho1996-petclinic.eastus2.cloudapp.azure.com:443']
+        labels:
+          application: spring-petclinic
+          service: petclinic-backend
+          environment: production
+
+  - job_name: petclinic-development
+    scheme: https
+    metrics_path: /actuator/prometheus
+    scrape_interval: 15s
+    tls_config:
+      insecure_skip_verify: true
+    static_configs:
+      - targets: ['guytho1996-petclinic-dev.eastus2.cloudapp.azure.com:443']
+        labels:
+          application: spring-petclinic
+          service: petclinic-backend
+          environment: development
+
+  - job_name: 'dora-exporter'
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+    static_configs:
+      - targets: ['host.containers.internal:9108']
         labels:
           application: 'spring-petclinic'
-          service: 'petclinic-backend'
-          environment: 'local'
+          service: 'dora-exporter'
+          environment: 'production'
