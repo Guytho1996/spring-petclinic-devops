@@ -35,6 +35,12 @@ spec:
         ports:
         - containerPort: 80
           name: http
+        - containerPort: 443
+          name: https
+        volumeMounts:
+        - name: tls-certs
+          mountPath: /etc/nginx/ssl
+          readOnly: true
         resources:
           limits:
             cpu: "200m"
@@ -74,3 +80,13 @@ spec:
         envFrom:
         - configMapRef:
             name: petclinic-config
+      volumes:
+      - name: tls-certs
+        secret:
+          secretName: petclinic-frontend-tls
+          items:
+          - key: tls.crt
+            path: nginx.crt
+          - key: tls.key
+            path: nginx.key
+          defaultMode: 420
