@@ -1,77 +1,52 @@
-# Blameless Postmortem: INC-2026-06-15-001
+# Postmortem: INC-2026-06-15-001
 
-## Metadata
+## Metadatos
 
-| Field | Value |
+| Campo | Valor |
 | --- | --- |
-| Incident ID | INC-2026-06-15-001 |
-| Title | Public Grafana route unavailable after Kubernetes ingress/service configuration drift |
-| Status | Completed for Proyecto Integrador evidence |
-| Date | 2026-06-15 |
-| Environment | Production demo |
-| Severity | SEV2 |
-| Duration | 28m 26s, from 2026-06-15 00:18:05 UTC to 2026-06-15 00:46:31 UTC |
-| Services affected | Kubernetes Ingress `/grafana`, external Grafana service, SLO/DORA dashboard access |
-| Services not affected | Spring Petclinic backend, frontend, PostgreSQL data |
-| Incident commander | DevOps/SRE owner |
-| Postmortem owner | DevOps/SRE owner |
-| Related evidence | `monitoring/dora/incidents.json`, `k8s/ingress.yaml`, `k8s/external-grafana.yaml`, `k8s/grafana-root-redirect.yaml` |
+| ID del Incidente | INC-2026-06-15-001 |
+| Título | Ruta pública de Grafana no disponible tras la desviación de configuración (drift) del ingress/servicio de Kubernetes |
+| Estado | Completado para evidencia del Proyecto Integrador |
+| Fecha | 2026-06-15 |
+| Entorno | Demo de producción |
+| Severidad | SEV2 |
+| Duración | 28m 26s, desde 2026-06-15 00:18:05 UTC hasta 2026-06-15 00:46:31 UTC |
+| Servicios afectados | Ingress de Kubernetes `/grafana`, servicio externo de Grafana, acceso al panel de SLO/DORA |
+| Servicios no afectados | Backend de Spring Petclinic, frontend, datos de PostgreSQL |
+| Comandante del incidente | Responsable de DevOps/SRE |
+| Responsable del postmortem | Responsable de DevOps/SRE |
+| Evidencia relacionada | `monitoring/dora/incidents.json`, `k8s/ingress.yaml`, `k8s/external-grafana.yaml`, `k8s/grafana-root-redirect.yaml` |
 
-## Summary
+## Resumen
 
-On 2026-06-15, the public Grafana route used by the Spring Petclinic
-DevOps project became unavailable after Kubernetes ingress and service
-configuration for the external Grafana instance drifted from the public
-production route contract. The incident was detected during post-deploy
-verification when the team attempted to open the public SLO dashboard at
-`/grafana`.
+El 2026-06-15, la ruta pública de Grafana utilizada por el proyecto DevOps de Spring Petclinic dejó de estar disponible después de que la configuración del ingress y del servicio de Kubernetes para la instancia externa de Grafana se desviara del contrato de la ruta pública de producción. El incidente se detectó durante la verificación posterior al despliegue (post-deploy) cuando el equipo intentó abrir el panel público de SLO en `/grafana`.
 
-This was a simulated incident for the Proyecto Integrador. The application
-itself continued serving traffic, and no customer or clinical data was lost.
-The reliability impact was still important because the team temporarily lost
-its main SLO/DORA dashboard during a deployment window.
+Este fue un incidente simulado para el Proyecto Integrador. La aplicación en sí continuó respondiendo al tráfico y no se perdieron datos clínicos ni de clientes. El impacto en la confiabilidad siguió siendo importante porque el equipo perdió temporalmente su panel principal de SLO/DORA durante una ventana de despliegue.
 
-The root cause was a missing automated verification step for external
-observability routes. The CI/CD pipeline verified build, tests, security scans,
-image publication, Kubernetes rollout status, and an optional smoke URL, but it
-did not validate that every public ingress path routed to an existing service
-and externally reachable endpoint.
+La causa raíz fue la falta de un paso de verificación automatizado para las rutas externas de observabilidad. El flujo de trabajo (pipeline) de CI/CD verificaba la compilación, pruebas, escaneos de seguridad, publicación de imágenes, estado del despliegue (rollout status) de Kubernetes y una URL de prueba de humo (smoke URL) opcional, pero no validaba que cada ruta de ingress pública redirigiera a un servicio existente y a un punto de conexión (endpoint) accesible externamente.
 
-## Impact
+## Impacto
 
-- Public access to Grafana and the SLO dashboard was degraded for 28m 26s.
-- Demo stakeholders could not validate the SLO/DORA dashboard through the
-  production URL during the incident window.
-- Prometheus metrics and application runtime were not intentionally changed by
-  the incident.
-- There was no data loss, no database corruption, and no known impact to
-  Petclinic owner, pet, visit, or vet workflows.
-- The incident increased operational risk because the dashboard used to inspect
-  SLOs was unavailable while the team was diagnosing the release.
+- El acceso público a Grafana y al panel de SLO se vio degradado durante 28m 26s.
+- Los interesados (stakeholders) de la demo no pudieron validar el panel de SLO/DORA a través de la URL de producción durante la ventana del incidente.
+- Las métricas de Prometheus y el tiempo de ejecución (runtime) de la aplicación no se modificaron intencionadamente por el incidente.
+- No hubo pérdida de datos, corrupción de base de datos ni impacto conocido en los flujos de trabajo de propietarios (owners), mascotas (pets), visitas (visits) o veterinarios (vets) de Petclinic.
+- El incidente aumentó el riesgo operativo porque el panel utilizado para inspeccionar los SLO no estuvo disponible mientras el equipo diagnosticaba la versión (release).
 
-## Trigger
+## Desencadenante
 
-The trigger was a Kubernetes manifest change that adjusted the external Grafana
-service naming and ingress route configuration. The relevant change sequence
-included:
+El desencadenante fue un cambio en los manifiestos de Kubernetes que ajustó el nombre del servicio externo de Grafana y la configuración de la ruta de ingress. La secuencia de cambios relevante incluyó:
 
-- `3c40b28`: added `external-grafana-service` and the `/grafana` ingress path.
-- `7c15ca5`: renamed the Grafana service/endpoint and ingress backend to
-  `grafana`.
-- `420de24`: added a root redirect for Grafana that still referenced the local
-  host pattern.
-- `6dae69c`: normalized the public production host and restored the
-  `external-grafana-service` contract in the manifests.
+- `3c40b28`: añadió `external-grafana-service` y la ruta de ingress `/grafana`.
+- `7c15ca5`: renombró el servicio/endpoint de Grafana y el backend del ingress a `grafana`.
+- `420de24`: añadió una redirección raíz para Grafana que aún hacía referencia al patrón de host local.
+- `6dae69c`: normalizó el host público de producción y restauró el contrato de `external-grafana-service` en los manifiestos.
 
-## Detection
+## Detección
 
-Detection was manual. During post-deploy verification, the public Grafana URL
-did not return the expected dashboard. The existing deployment script waited
-for Kubernetes rollout status, but the checks did not cover this external
-Grafana route. That means the deployment could be "green" while the dashboard
-path was still broken.
+La detección fue manual. Durante la verificación posterior al despliegue, la URL pública de Grafana no devolvió el panel esperado. El script de despliegue existente esperaba el estado del rollout de Kubernetes, pero las comprobaciones no cubrían esta ruta externa de Grafana. Eso significa que el despliegue podía aparecer en verde ("green") mientras la ruta del panel seguía rota.
 
-Recommended commands used to confirm this class of failure:
+Comandos recomendados utilizados para confirmar este tipo de fallo:
 
 ```bash
 curl -kI https://guytho1996-petclinic.eastus2.cloudapp.azure.com/grafana/
@@ -80,112 +55,90 @@ kubectl -n devops-lab get svc,endpoints external-grafana-service grafana -o wide
 kubectl -n devops-lab describe ingress petclinic-ingress
 ```
 
-## Timeline
+## Línea de tiempo
 
-| Time (UTC) | Event |
+| Hora (UTC) | Evento |
 | --- | --- |
-| 2026-06-14 23:35:20 | `3c40b28` added `external-grafana-service` and exposed `/grafana` through Ingress. |
-| 2026-06-14 23:55:44 | `7c15ca5` changed the Grafana service, endpoint, and ingress backend name to `grafana`. |
-| 2026-06-15 00:18:05 | The public Grafana route failed post-deploy verification. Incident `INC-2026-06-15-001` was opened as SEV2. |
-| 2026-06-15 00:20:00 | Non-essential deployment changes were paused while the team checked Ingress, Service, and Endpoints resources. |
-| 2026-06-15 00:28:00 | The team identified that rollout status did not validate the external dashboard route and that the route contract had drifted. |
-| 2026-06-15 00:35:02 | `06e79dd` was created during mitigation work to update the external Grafana configuration record. |
-| 2026-06-15 00:46:31 | Public Grafana access was restored. MTTR recorded for DORA: 28m 26s. |
-| 2026-06-15 01:45:20 | `420de24` added a Grafana root redirect manifest, exposing remaining host/route configuration debt. |
-| 2026-06-15 02:11:35 | `6dae69c` made the durable manifest follow-up by using the production host and restoring the external Grafana service naming contract. |
+| 2026-06-14 23:35:20 | `3c40b28` añadió `external-grafana-service` y expuso `/grafana` a través del Ingress. |
+| 2026-06-14 23:55:44 | `7c15ca5` cambió el servicio, endpoint de Grafana y el nombre del backend del ingress a `grafana`. |
+| 2026-06-15 00:18:05 | La ruta pública de Grafana falló en la verificación posterior al despliegue. Se abrió el incidente `INC-2026-06-15-001` con severidad SEV2. |
+| 2026-06-15 00:20:00 | Se pausaron los cambios de despliegue no esenciales mientras el equipo comprobaba los recursos de Ingress, Service y Endpoints. |
+| 2026-06-15 00:28:00 | El equipo identificó que el estado del rollout no validaba la ruta externa del panel y que el contrato de la ruta se había desviado. |
+| 2026-06-15 00:35:02 | Se creó `06e79dd` durante los trabajos de mitigación para actualizar el registro de configuración externa de Grafana. |
+| 2026-06-15 00:46:31 | Se restableció el acceso público a Grafana. MTTR registrado para DORA: 28m 26s. |
+| 2026-06-15 01:45:20 | `420de24` añadió un manifiesto de redirección raíz de Grafana, exponiendo la deuda restante de configuración de host/ruta. |
+| 2026-06-15 02:11:35 | `6dae69c` realizó el seguimiento duradero en los manifiestos utilizando el host de producción y restaurando el contrato de nomenclatura del servicio externo de Grafana. |
 
-## Root Cause
+## Causa Raíz
 
-### Direct technical cause
+### Causa técnica directa
 
-The public `/grafana` route was not covered by automated post-deploy validation,
-so ingress, service, endpoint, and redirect changes could be applied even when
-the public dashboard route did not match the production access pattern.
+La ruta pública `/grafana` no estaba cubierta por la validación automatizada posterior al despliegue, por lo que se podían aplicar cambios de ingress, servicio, endpoint y redirección incluso cuando la ruta pública del panel no coincidiera con el patrón de acceso de producción.
 
-### Systemic root cause
+### Causa raíz sistémica
 
-The deployment process treated Kubernetes rollout success as sufficient
-evidence of production readiness. That was not enough for this topology because
-Grafana runs as an external service behind Kubernetes Service/Endpoints objects
-and an Ingress path. The route depended on a contract across multiple manifests,
-but the repository did not have a contract test, manifest policy, or blackbox
-probe for that path.
+El proceso de despliegue consideraba el éxito del rollout de Kubernetes como evidencia suficiente de preparación para producción. Eso no era suficiente para esta topología porque Grafana se ejecuta como un servicio externo detrás de objetos Service/Endpoints de Kubernetes y una ruta de Ingress. La ruta dependía de un contrato entre múltiples manifiestos, pero el repositorio no contaba con una prueba de contrato, una política de manifiesto ni una sonda de caja negra (blackbox probe) para esa ruta.
 
-### Contributing factors
+### Factores contribuyentes
 
-- `SMOKE_TEST_URL` supported only optional URL checks and was not required for
-  production deployment.
-- The public `/grafana` route was not included in the smoke-test scope.
-- The external Grafana integration used a static endpoint IP, which made the
-  route more sensitive to manually maintained Service/Endpoints configuration.
-- The root redirect and main ingress route could drift independently.
-- No CI check verified that every Ingress backend service name and port existed
-  in the rendered Kubernetes manifests.
+- `SMOKE_TEST_URL` solo admitía comprobaciones de URL opcionales y no era obligatorio para el despliegue en producción.
+- La ruta pública `/grafana` no estaba incluida en el alcance de la prueba de humo.
+- La integración externa de Grafana utilizaba una IP de endpoint estática, lo que hacía que la ruta fuera más sensible a la configuración de Service/Endpoints mantenida manualmente.
+- La redirección raíz y la ruta de ingress principal podían desviarse de forma independiente.
+- Ninguna comprobación de CI verificaba que cada nombre y puerto de servicio de backend del Ingress existiera en los manifiestos de Kubernetes renderizados.
 
-## 5 Whys
+## 5 Porqués
 
-| Why | Answer |
+| ¿Por qué? | Respuesta |
 | --- | --- |
-| 1. Why was Grafana unavailable through the public URL? | The public `/grafana` route did not resolve to the expected external Grafana backend after ingress/service configuration changes. |
-| 2. Why did the route point to an invalid or unexpected backend/host contract? | Multiple manifests controlled the Grafana route, service, endpoint, and redirect, and they were changed without one automated contract check covering all of them. |
-| 3. Why did the deployment pipeline allow that change to reach production? | The pipeline waited for backend/frontend rollout status, but rollout status does not prove that an external Ingress path is reachable. |
-| 4. Why was there no route-level validation? | The smoke-test design focused on the application path and treated observability routes as supporting infrastructure, not production-facing reliability dependencies. |
-| 5. Why was the observability route not treated as a release contract? | Ownership and acceptance criteria for externally exposed monitoring endpoints were not documented in the deployment runbook or CI/CD quality gates. |
+| 1. ¿Por qué Grafana no estaba disponible a través de la URL pública? | La ruta pública `/grafana` no se resolvía en el backend externo de Grafana esperado después de los cambios en la configuración de ingress/servicio. |
+| 2. ¿Por qué la ruta apuntaba a un contrato de backend/host no válido o inesperado? | Múltiples manifiestos controlaban la ruta, servicio, endpoint y redirección de Grafana, y se modificaron sin que una comprobación automatizada de contrato los cubriera a todos. |
+| 3. ¿Por qué la tubería (pipeline) de despliegue permitió que ese cambio llegara a producción? | El pipeline esperaba el estado de rollout del backend/frontend, pero el estado de rollout no demuestra que una ruta de Ingress externa sea accesible. |
+| 4. ¿Por qué no hubo una validación a nivel de ruta? | El diseño de la prueba de humo se centró en la ruta de la aplicación y trató las rutas de observabilidad como infraestructura de soporte, no como dependencias de confiabilidad orientadas a producción. |
+| 5. ¿Por qué la ruta de observabilidad no se trató como un contrato de entrega (release)? | Las responsabilidades y los criterios de aceptación para los endpoints de monitoreo expuestos externamente no estaban documentados en el manual de despliegue (runbook) ni en las puertas de calidad (quality gates) de CI/CD. |
 
-## What Went Well
+## Qué salió bien
 
-- The incident was detected during post-deploy verification, before the demo
-  relied on Grafana screenshots as final evidence.
-- Application traffic and database state were isolated from the Grafana route
-  issue.
-- The repo already had DORA incident storage, making MTTR and CFR auditable.
-- Kubernetes manifests were versioned, so the team could reconstruct the change
-  sequence from commit history.
+- El incidente se detectó durante la verificación posterior al despliegue, antes de que la demo dependiera de las capturas de pantalla de Grafana como evidencia final.
+- El tráfico de la aplicación y el estado de la base de datos estuvieron aislados del problema de la ruta de Grafana.
+- El repositorio ya contaba con almacenamiento de incidentes de DORA, lo que permitía auditar el MTTR y el CFR.
+- Los manifiestos de Kubernetes estaban versionados, por lo que el equipo pudo reconstruir la secuencia de cambios a partir del historial de confirmaciones (commits).
 
-## What Went Poorly
+## Qué salió mal
 
-- Detection was manual instead of alert-driven.
-- The deployment pipeline did not require a production smoke test for
-  `/grafana`.
-- The route depended on several manifests, but the repo had no validation that
-  Ingress backends referenced existing Services and ports.
-- The first mitigation work did not fully close the durable configuration gap;
-  a later follow-up was needed to normalize host and service naming.
+- La detección fue manual en lugar de estar basada en alertas.
+- El pipeline de despliegue no requería una prueba de humo en producción para `/grafana`.
+- La ruta dependía de varios manifiestos, pero el repositorio no tenía validación de que los backends del Ingress hicieran referencia a servicios y puertos existentes.
+- El primer trabajo de mitigación no cerró por completo la brecha de configuración duradera; fue necesario un seguimiento posterior para normalizar el nombre del host y del servicio.
 
-## Where We Got Lucky
+## Dónde tuvimos suerte
 
-- The incident affected dashboard access, not the Spring Petclinic request path.
-- No data migration or database change was involved.
-- The failure mode was visible through a simple HTTP check.
-- The manifest history was small enough to inspect quickly.
+- El incidente afectó al acceso al panel, no a la ruta de peticiones de Spring Petclinic.
+- No implicó ninguna migración de datos ni cambios en la base de datos.
+- El modo de fallo era visible a través de una simple comprobación HTTP.
+- El historial de manifiestos era lo suficientemente pequeño como para inspeccionarlo rápidamente.
 
-## Action Items
+## Acciones a tomar (Action Items)
 
-| ID | Priority | Type | Owner | Status | Due date | Action | Success criteria |
+| ID | Prioridad | Tipo | Responsable | Estado | Fecha de vencimiento | Acción | Criterio de éxito |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| PM-2026-06-15-001-A1 | P0 | Mitigate | DevOps/SRE owner | Done | 2026-06-15 | Restore public Grafana route and normalize production host/service configuration. | `https://guytho1996-petclinic.eastus2.cloudapp.azure.com/grafana/` returns a valid Grafana response or redirect. |
-| PM-2026-06-15-001-A2 | P0 | Prevent | DevOps/SRE owner | Open | 2026-06-18 | Make post-deploy smoke tests mandatory for `/`, `/grafana/`, and the SLO dashboard URL in production. | Production deploy fails automatically if any required route returns non-2xx/3xx or times out. |
-| PM-2026-06-15-001-A3 | P1 | Prevent | Platform owner | Open | 2026-06-20 | Add Kubernetes manifest validation for Ingress backend service names and ports after rendering manifests. | CI fails when an Ingress backend references a Service or port that is absent from the rendered manifests. |
-| PM-2026-06-15-001-A4 | P1 | Detect | Observability owner | Open | 2026-06-21 | Add a blackbox HTTP probe and alert for the public Grafana route. | Alert fires when `/grafana/` is unavailable for more than 2 minutes. |
-| PM-2026-06-15-001-A5 | P2 | Prevent | DevOps/SRE owner | Open | 2026-06-19 | Document the external Grafana route contract in `monitoring/README.md`. | README lists the public URL, Kubernetes Service/Endpoints object names, expected host, and validation commands. |
+| PM-2026-06-15-001-A1 | P0 | Mitigar | Responsable de DevOps/SRE | Hecho | 2026-06-15 | Restaurar la ruta pública de Grafana y normalizar la configuración de host/servicio en producción. | `https://guytho1996-petclinic.eastus2.cloudapp.azure.com/grafana/` devuelve una respuesta o redirección válida de Grafana. |
+| PM-2026-06-15-001-A2 | P0 | Prevenir | Responsable de DevOps/SRE | Abierto | 2026-06-18 | Hacer obligatorias las pruebas de humo posteriores al despliegue para `/`, `/grafana/` y la URL del panel de SLO en producción. | El despliegue de producción falla automáticamente si alguna ruta requerida devuelve algo distinto de 2xx/3xx o agota el tiempo de espera (timeout). |
+| PM-2026-06-15-001-A3 | P1 | Prevenir | Responsable de la plataforma | Abierto | 2026-06-20 | Añadir validación de manifiestos de Kubernetes para nombres y puertos de servicios de backend del Ingress después de renderizar manifiestos. | La integración continua (CI) falla cuando un backend de Ingress hace referencia a un servicio o puerto que está ausente en los manifiestos renderizados. |
+| PM-2026-06-15-001-A4 | P1 | Detectar | Responsable de observabilidad | Abierto | 2026-06-21 | Añadir una sonda HTTP de caja negra y una alerta para la ruta pública de Grafana. | La alerta se dispara cuando `/grafana/` no está disponible durante más de 2 minutos. |
+| PM-2026-06-15-001-A5 | P2 | Prevenir | Responsable de DevOps/SRE | Abierto | 2026-06-19 | Documentar el contrato de la ruta externa de Grafana en `monitoring/README.md`. | El README lista la URL pública, nombres de los objetos Service/Endpoints de Kubernetes, host esperado y comandos de validación. |
 
-## Lessons Learned
+## Lecciones Aprendidas
 
-- Kubernetes rollout success proves that Deployments converged; it does not
-  prove that every user-facing or operator-facing route works.
-- Observability endpoints are part of the production reliability surface when
-  teams depend on them for incident response and SLO evidence.
-- Blameless review should focus on the missing system controls: mandatory smoke
-  tests, manifest validation, ownership, and alerting.
+- El éxito del rollout de Kubernetes demuestra que los despliegues (Deployments) convergieron; no demuestra que cada ruta orientada al usuario u operador funcione.
+- Los puntos de conexión (endpoints) de observabilidad forman parte de la superficie de confiabilidad de producción cuando los equipos dependen de ellos para la respuesta a incidentes y evidencia de SLO.
+- La revisión libre de culpas debe centrarse en los controles del sistema ausentes: pruebas de humo obligatorias, validación de manifiestos, responsabilidades y alertas.
 
-## Google SRE Alignment
+## Alineación con Google SRE
 
-This postmortem follows the Google SRE approach by documenting impact,
-timeline, trigger, root cause, contributing factors, and measurable action
-items with ownership and priority. The language intentionally focuses on system
-and process improvements instead of assigning personal blame.
+Este postmortem sigue el enfoque de SRE de Google al documentar el impacto, la línea de tiempo, el desencadenante, la causa raíz, los factores contribuyentes y las acciones medibles con responsables y prioridad. El lenguaje se enfoca intencionadamente en las mejoras del sistema y de los procesos en lugar de asignar culpas personales.
 
-References:
+Referencias:
 
-- Google SRE Book, "Postmortem Culture: Learning from Failure": https://sre.google/sre-book/postmortem-culture/
-- Google SRE Workbook, "Postmortem Practices for Incident Management": https://sre.google/workbook/postmortem-culture/
+- Libro de SRE de Google, "Postmortem Culture: Learning from Failure": https://sre.google/sre-book/postmortem-culture/
+- Libro de trabajo de SRE de Google, "Postmortem Practices for Incident Management": https://sre.google/workbook/postmortem-culture/
