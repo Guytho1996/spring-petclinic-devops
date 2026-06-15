@@ -1,0 +1,24 @@
+[Unit]
+Description=Petclinic DORA exporter and dashboard
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+Environment=DORA_GITHUB_OWNER=Guytho1996
+Environment=DORA_GITHUB_REPO=spring-petclinic-devops
+Environment=DORA_BRANCH=master
+Environment=DORA_ENVIRONMENT=production
+Environment=DORA_EXPORTER_PORT=9108
+Environment=DORA_CACHE_SECONDS=45
+Environment=DORA_INCIDENTS_FILE=/opt/petclinic-dora/incidents.json
+EnvironmentFile=-/etc/petclinic-dora-exporter.env
+ExecStart=/usr/bin/python3 /opt/petclinic-dora/dora_exporter.py
+Restart=always
+RestartSec=5
+User=opc
+Group=opc
+WorkingDirectory=/opt/petclinic-dora
+
+[Install]
+WantedBy=multi-user.target
