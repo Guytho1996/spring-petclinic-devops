@@ -15,8 +15,10 @@ Deployment flow:
 1. GitHub Actions builds and scans the backend/frontend images.
 2. Images are pushed to GHCR with the commit SHA.
 3. Development AKS is updated automatically.
-4. Production AKS is updated after the `production` environment approval.
-5. Kubernetes replaces pods gradually with `RollingUpdate`,
+4. OWASP ZAP runs a baseline DAST scan against development and uploads the
+   `zap-baseline-security-report` artifact.
+5. Production AKS is updated after the `production` environment approval.
+6. Kubernetes replaces pods gradually with `RollingUpdate`,
    `maxUnavailable: 0`, and `maxSurge: 1`.
 
 Runtime frontend configuration is rendered from container environment variables:
