@@ -1,0 +1,32 @@
+#!/usr/bin/env sh
+set -eu
+
+repo_root="$(git rev-parse --show-toplevel)"
+cd "$repo_root"
+
+if command -v gitleaks >/dev/null 2>&1; then
+  exec gitleaks git --pre-commit --redact --staged --verbose --config "$repo_root/.gitleaks.toml"
+fi
+
+if command -v docker >/dev/null 2>&1; then
+  image="${GITLEAKS_DOCKER_IMAGE:-ghcr.io/gitleaks/gitleaks:v8.30.1}"
+  exec docker run --rm \
+    --user "$(id -u):$(id -g)" \
+    -e HOME=/tmp \
+    -v "$repo_root:/repo" \
+    -w /repo \
+    "$image" git --pre-commit --redact --staged --verbose --config /repo/.gitleaks.toml
+fi
+
+if command -v pre-commit >/dev/null 2>&1 && [ -f ".pre-commit-config.yaml" ]; then
+  exec pre-commit run --hook-stage pre-commit
+fi
+
+cat >&2 <<'EOF'
+gitleaks pre-commit hook could not run.
+Install one of:
+  - pre-commit and run: pre-commit install
+  - gitleaks binary: https://github.com/gitleaks/gitleaks
+  - Docker, so the hook can run ghcr.io/gitleaks/gitleaks:v8.30.1
+EOF
+exit 1
