@@ -231,9 +231,16 @@ def classify_mttr(seconds: float | None) -> tuple[str, int, str]:
 
 def build_payload() -> dict[str, object]:
     now = datetime.now(timezone.utc)
-    deployments_raw = github_get("/deployments", {"per_page": "100"})
-    if not isinstance(deployments_raw, list):
-        deployments_raw = []
+    deployments_raw = []
+    page = 1
+    while True:
+        page_items = github_get("/deployments", {"per_page": "100", "page": str(page)})
+        if not isinstance(page_items, list) or not page_items:
+            break
+        deployments_raw.extend(page_items)
+        if len(page_items) < 100:
+            break
+        page += 1
 
     deployments: list[dict[str, object]] = []
     for item in deployments_raw:

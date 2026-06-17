@@ -84,9 +84,9 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "dora_deployments_last_24h{environment=\"production\",state=\"success\"}",
+          "expr": "dora_deployment_frequency_per_day{environment=\"production\"}",
           "instant": true,
-          "legendFormat": "deploys/24h",
+          "legendFormat": "deploys/day",
           "range": false,
           "refId": "A"
         }
