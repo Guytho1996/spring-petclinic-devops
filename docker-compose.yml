@@ -55,7 +55,7 @@ services:
         condition: service_healthy
     ports:
       - "${FRONTEND_PORT:-8080}:443"
-      - "443:443"
+      # - "443:443"  # disabled: HAProxy already binds host:443
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/healthz | grep -q ok"]
       interval: 10s
@@ -102,6 +102,11 @@ services:
       - prometheus
     expose:
       - "3000"
+    networks:
+      default:
+        aliases:
+          - grafana
+          - external-grafana-service
 
 volumes:
   postgres-data:

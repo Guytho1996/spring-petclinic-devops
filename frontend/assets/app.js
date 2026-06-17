@@ -28,7 +28,7 @@
 
   if (backendBaseUrl) {
     const healthUrl = backendBaseUrl + "/actuator/health";
-    const ownersPageUrl = frontendRouteUrl("owners/find/");
+    const ownersPageUrl = frontendRouteUrl("owners/index.html");
 
     setLink(elements.backendLink, ownersPageUrl);
     setLink(elements.healthLink, healthUrl);

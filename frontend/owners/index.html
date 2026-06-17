@@ -270,7 +270,7 @@
         }
 
         // Construir la URL del backend
-        const targetUrl = backendBaseUrl.replace(/\/+$/, '') + '/owners?lastName=' + encodeURIComponent(lastName);
+        const targetUrl = backendBaseUrl.replace(/\/+$/, '') + '/api/owners?lastName=' + encodeURIComponent(lastName);
 
         metaUrlEl.textContent = targetUrl;
 
