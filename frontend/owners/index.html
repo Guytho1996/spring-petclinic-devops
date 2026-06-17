@@ -7,132 +7,109 @@
     <link rel="icon" href="../assets/favicon.png">
     <link rel="stylesheet" href="../assets/site.css">
     <style>
-      .query-container {
+      .search-form {
         background: var(--surface);
         border: 1px solid var(--line);
         border-radius: 8px;
         padding: 24px;
         box-shadow: var(--shadow);
         margin-bottom: 24px;
-      }
-      .query-header {
         display: flex;
-        justify-content: space-between;
-        align-items: center;
-        border-bottom: 1px solid var(--line);
-        padding-bottom: 14px;
-        margin-bottom: 18px;
-      }
-      .query-title {
-        font-size: 1.25rem;
-        font-weight: 700;
-        margin: 0;
-      }
-      .status-badge {
-        padding: 4px 10px;
-        border-radius: 999px;
-        font-size: 0.82rem;
-        font-weight: 700;
-        text-transform: uppercase;
-      }
-      .status-badge.loading {
-        background: #fef3c7;
-        color: #b45309;
-        border: 1px solid #fde68a;
-      }
-      .status-badge.success {
-        background: #dcfce7;
-        color: #15803d;
-        border: 1px solid #bbf7d0;
-      }
-      .status-badge.error {
-        background: #fee2e2;
-        color: #b91c1c;
-        border: 1px solid #fecaca;
-      }
-      .metadata-list {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
         gap: 16px;
-        margin-bottom: 24px;
+        align-items: flex-end;
+        flex-wrap: wrap;
       }
-      .metadata-item {
-        border: 1px solid var(--line);
-        border-radius: 6px;
-        padding: 12px;
-        background: var(--surface-soft);
+      .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        flex: 1 1 250px;
       }
-      .metadata-label {
-        font-size: 0.75rem;
+      .form-label {
+        font-size: 0.82rem;
+        font-weight: 800;
+        color: var(--muted);
         text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+      .form-input {
+        min-height: 40px;
+        padding: 0 14px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        font-family: inherit;
+        font-size: 0.95rem;
+        background: var(--surface);
+        color: var(--ink);
+      }
+      .form-input:focus {
+        outline: none;
+        border-color: var(--brand);
+      }
+      .btn-container {
+        display: flex;
+        gap: 12px;
+      }
+      .table-container {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        box-shadow: var(--shadow);
+        overflow-x: auto;
+        margin-top: 24px;
+      }
+      .owners-table {
+        width: 100%;
+        border-collapse: collapse;
+        text-align: left;
+        font-size: 0.95rem;
+      }
+      .owners-table th, .owners-table td {
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--line);
+      }
+      .owners-table th {
+        background: var(--surface-soft);
         color: var(--muted);
         font-weight: 800;
-      }
-      .metadata-value {
-        font-size: 0.95rem;
-        font-weight: 600;
-        margin-top: 4px;
-        overflow-wrap: anywhere;
-      }
-      .console-log-box {
-        background: #1e1e24;
-        color: #f4f4f9;
-        font-family: SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
-        font-size: 0.85rem;
-        line-height: 1.5;
-        padding: 18px;
-        border-radius: 8px;
-        overflow-x: auto;
-        white-space: pre-wrap;
-        max-height: 300px;
-        border: 1px solid #2d2d34;
-      }
-      .response-viewer {
-        background: #fafafc;
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        padding: 18px;
-        margin-top: 18px;
-      }
-      .response-viewer-title {
-        font-size: 0.88rem;
-        font-weight: 700;
         text-transform: uppercase;
-        color: var(--muted);
-        margin-bottom: 10px;
+        font-size: 0.78rem;
+        letter-spacing: 0.05em;
       }
-      .response-content {
-        font-family: SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
-        font-size: 0.82rem;
-        white-space: pre-wrap;
-        background: #ffffff;
-        border: 1px solid var(--line);
-        padding: 12px;
-        border-radius: 6px;
-        max-height: 400px;
-        overflow-y: auto;
+      .owners-table tr:last-child td {
+        border-bottom: none;
       }
-      .alert-box {
-        border-radius: 8px;
-        padding: 16px;
-        margin-bottom: 24px;
-        display: none;
+      .owners-table tr:hover td {
+        background: var(--surface-soft);
       }
-      .alert-box.warning {
-        background: #fffbeb;
-        border: 1px solid #fde68a;
-        color: #78350f;
-      }
-      .alert-box.visible {
-        display: block;
-      }
-      .alert-box-title {
+      .owner-link {
+        color: var(--brand);
         font-weight: 700;
-        margin-bottom: 6px;
+        text-decoration: none;
       }
-      .alert-box-desc {
-        font-size: 0.9rem;
-        line-height: 1.4;
+      .owner-link:hover {
+        text-decoration: underline;
+        color: var(--brand-dark);
+      }
+      .pet-badge {
+        display: inline-block;
+        background: var(--surface-soft);
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 4px 8px;
+        margin-right: 6px;
+        margin-bottom: 4px;
+        font-size: 0.82rem;
+        font-weight: 600;
+      }
+      .status-box {
+        border-radius: 8px;
+        padding: 16px 20px;
+        margin-top: 24px;
+        font-size: 0.95rem;
+        font-weight: 500;
+        line-height: 1.5;
+        display: none;
       }
     </style>
   </head>
@@ -153,50 +130,38 @@
     <main>
       <section style="padding: 20px 0 10px 0;">
         <p class="eyebrow" id="query-eyebrow">Consulta de Propietarios</p>
-        <h1 id="query-headline" style="font-size: clamp(2rem, 5vw, 3.5rem);">Ejecución de Fetch</h1>
-        <p style="color: var(--muted); margin-top: 8px;">Este componente ejecuta la consulta hacia el backend de manera dinámica.</p>
+        <h1 id="query-headline" style="font-size: clamp(2rem, 5vw, 3.5rem);">Buscar Propietarios</h1>
+        <p style="color: var(--muted); margin-top: 8px;">Busque y gestione la información de los propietarios de mascotas y sus visitas.</p>
       </section>
 
-      <div id="mixed-content-alert" class="alert-box warning">
-        <div class="alert-box-title">Restricción de Contenido Mixto o CORS Detectada</div>
-        <div class="alert-box-desc">
-          Si el backend está configurado en HTTP (por ejemplo, el puerto 8080 de la IP pública) y estás accediendo desde un frontend en HTTPS, el navegador bloqueará la consulta <code>fetch</code> por seguridad de Contenido Mixto (Mixed Content) o por falta de cabeceras CORS.
-          <br><br>
-          Para solucionarlo, puedes abrir el endpoint directamente en tu navegador haciendo clic en el botón de abajo:
-          <div style="margin-top: 14px;">
-            <a id="direct-fallback-btn" class="command primary" href="#" target="_blank">Abrir consulta directamente en el navegador</a>
-          </div>
+      <form class="search-form" id="search-owner-form" method="get" action="./index.html">
+        <div class="form-group">
+          <label for="lastName-input" class="form-label">Apellido</label>
+          <input type="text" id="lastName-input" name="lastName" class="form-input" placeholder="Ej: Franklin, Davis...">
         </div>
-      </div>
-
-      <div class="query-container">
-        <div class="query-header">
-          <div class="query-title">Resultado de la Petición</div>
-          <span id="query-status-badge" class="status-badge loading">Consultando...</span>
+        <div class="btn-container">
+          <button type="submit" class="command primary">Buscar Propietario</button>
+          <a class="command" href="/owners/new">Añadir Propietario</a>
         </div>
+      </form>
 
-        <div class="metadata-list">
-          <div class="metadata-item">
-            <div class="metadata-label">URL de Consulta</div>
-            <div id="meta-url" class="metadata-value">-</div>
-          </div>
-          <div class="metadata-item">
-            <div class="metadata-label">Código de Estado</div>
-            <div id="meta-status" class="metadata-value">-</div>
-          </div>
-          <div class="metadata-item">
-            <div class="metadata-label">Tipo de Contenido</div>
-            <div id="meta-content-type" class="metadata-value">-</div>
-          </div>
-        </div>
+      <div id="status-message" class="status-box"></div>
 
-        <div class="response-viewer-title">Salida de Consola (Log similar a query_owners.js)</div>
-        <pre id="console-logs" class="console-log-box">Iniciando petición...</pre>
-
-        <div id="payload-viewer" class="response-viewer" style="display: none;">
-          <div class="response-viewer-title">Cuerpo de la Respuesta</div>
-          <pre id="payload-content" class="response-content"></pre>
-        </div>
+      <div id="owners-list-container" class="table-container" style="display: none;">
+        <table class="owners-table">
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>Dirección</th>
+              <th>Ciudad</th>
+              <th>Teléfono</th>
+              <th>Mascotas</th>
+            </tr>
+          </thead>
+          <tbody id="owners-table-body">
+            <!-- Dynamic content -->
+          </tbody>
+        </table>
       </div>
     </main>
 
@@ -212,19 +177,32 @@
         const params = new URLSearchParams(window.location.search);
         const lastName = params.has('lastName') ? params.get('lastName') : '';
 
-        const logsEl = document.getElementById('console-logs');
-        const badgeEl = document.getElementById('query-status-badge');
-        const metaUrlEl = document.getElementById('meta-url');
-        const metaStatusEl = document.getElementById('meta-status');
-        const metaContentTypeEl = document.getElementById('meta-content-type');
-        const payloadViewerEl = document.getElementById('payload-viewer');
-        const payloadContentEl = document.getElementById('payload-content');
-        const mixedContentAlert = document.getElementById('mixed-content-alert');
-        const fallbackBtn = document.getElementById('direct-fallback-btn');
+        // Rellenar el input con el parámetro actual
+        const inputEl = document.getElementById('lastName-input');
+        if (inputEl) {
+          inputEl.value = lastName;
+        }
 
-        function appendLog(message) {
-          console.log(message);
-          logsEl.textContent += '\n' + message;
+        const containerEl = document.getElementById('owners-list-container');
+        const tableBodyEl = document.getElementById('owners-table-body');
+        const statusEl = document.getElementById('status-message');
+
+        function setStatus(text, type = 'info') {
+          statusEl.textContent = text;
+          statusEl.style.display = 'block';
+          if (type === 'error') {
+            statusEl.style.background = '#fee2e2';
+            statusEl.style.border = '1px solid #fecaca';
+            statusEl.style.color = '#b91c1c';
+          } else if (type === 'loading') {
+            statusEl.style.background = '#fef3c7';
+            statusEl.style.border = '1px solid #fde68a';
+            statusEl.style.color = '#b45309';
+          } else {
+            statusEl.style.background = '#f4f8f6';
+            statusEl.style.border = '1px solid #d8e2dc';
+            statusEl.style.color = '#5c6f65';
+          }
         }
 
         function normalizeBackendUrl(value) {
@@ -250,86 +228,89 @@
           }
         }
 
-        function showWarning() {
-          mixedContentAlert.classList.add('visible');
-        }
-
-        function setErrorStatus(message) {
-          badgeEl.className = 'status-badge error';
-          badgeEl.textContent = 'Error';
-          metaStatusEl.textContent = 'Fallo';
-          metaContentTypeEl.textContent = 'N/A';
-          appendLog(message);
-          showWarning();
-        }
-
         if (!backendBaseUrl) {
-          metaUrlEl.textContent = 'No configurada';
-          setErrorStatus('Backend no configurado. Defina FRONTEND_BACKEND_BASE_URL con una URL publica HTTPS o same-origin.');
+          setStatus('Backend no configurado. Defina FRONTEND_BACKEND_BASE_URL con una URL pública HTTPS o same-origin.', 'error');
           return;
         }
 
-        // Construir la URL del backend
+        // Construir la URL del backend para la consulta API
         const targetUrl = backendBaseUrl.replace(/\/+$/, '') + '/api/owners?lastName=' + encodeURIComponent(lastName);
 
-        metaUrlEl.textContent = targetUrl;
-
-        if (fallbackBtn) {
-          fallbackBtn.href = targetUrl;
-        }
-
-        // Si la página se carga sobre HTTPS y el backend es HTTP, mostrar advertencia de contenido mixto
+        // Si la página se carga sobre HTTPS y el backend es HTTP, advertir
         if (window.location.protocol === 'https:' && targetUrl.startsWith('http' + '://')) {
-          setErrorStatus('Consulta bloqueada: la pagina usa HTTPS y el backend configurado usa HTTP.');
+          setStatus('La página se sirve de forma segura por HTTPS, pero el backend configurado usa HTTP. Por favor, configure el backend con HTTPS.', 'error');
           return;
         }
 
-        appendLog('Realizando petición fetch a: ' + targetUrl);
+        setStatus('Cargando propietarios...', 'loading');
 
         fetch(targetUrl)
           .then(response => {
-            badgeEl.className = 'status-badge success';
-            badgeEl.textContent = 'Completado';
-            metaStatusEl.textContent = response.status + ' ' + response.statusText;
-            
-            appendLog('Status: ' + response.status);
-            
-            let contentType = '';
-            for (let [key, value] of response.headers) {
-              appendLog(key + ': ' + value);
-              if (key.toLowerCase() === 'content-type') {
-                contentType = value;
-              }
+            if (!response.ok) {
+              throw new Error("HTTP " + response.status + " " + response.statusText);
             }
-            metaContentTypeEl.textContent = contentType || 'No especificado';
-
-            if (contentType.includes('application/json')) {
-              return response.json();
-            } else {
-              return response.text();
-            }
+            return response.json();
           })
           .then(data => {
-            payloadViewerEl.style.display = 'block';
-            if (typeof data === 'string') {
-              appendLog('Datos obtenidos (HTML): ' + data.substring(0, 500) + '\n... [truncado]');
-              payloadContentEl.textContent = data;
-            } else {
-              appendLog('Datos obtenidos (JSON): ' + JSON.stringify(data, null, 2));
-              payloadContentEl.textContent = JSON.stringify(data, null, 2);
+            if (!Array.isArray(data) || data.length === 0) {
+              setStatus('No se encontraron propietarios.', 'info');
+              containerEl.style.display = 'none';
+              return;
             }
+
+            statusEl.style.display = 'none';
+            tableBodyEl.innerHTML = '';
+
+            data.forEach(owner => {
+              const tr = document.createElement('tr');
+
+              // Name cell (link to detailed info)
+              const nameTd = document.createElement('td');
+              const link = document.createElement('a');
+              // Link to /owners/{id} which is handled by the backend Thymeleaf template
+              link.href = '/owners/' + owner.id;
+              link.className = 'owner-link';
+              link.textContent = (owner.firstName || '') + ' ' + (owner.lastName || '');
+              nameTd.appendChild(link);
+              tr.appendChild(nameTd);
+
+              // Address cell
+              const addressTd = document.createElement('td');
+              addressTd.textContent = owner.address || '';
+              tr.appendChild(addressTd);
+
+              // City cell
+              const cityTd = document.createElement('td');
+              cityTd.textContent = owner.city || '';
+              tr.appendChild(cityTd);
+
+              // Telephone cell
+              const telephoneTd = document.createElement('td');
+              telephoneTd.textContent = owner.telephone || '';
+              tr.appendChild(telephoneTd);
+
+              // Pets cell
+              const petsTd = document.createElement('td');
+              if (Array.isArray(owner.pets) && owner.pets.length > 0) {
+                owner.pets.forEach(pet => {
+                  const badge = document.createElement('span');
+                  badge.className = 'pet-badge';
+                  badge.textContent = pet.name || '';
+                  petsTd.appendChild(badge);
+                });
+              } else {
+                petsTd.textContent = '-';
+              }
+              tr.appendChild(petsTd);
+
+              tableBodyEl.appendChild(tr);
+            });
+
+            containerEl.style.display = 'block';
           })
           .catch(error => {
-            badgeEl.className = 'status-badge error';
-            badgeEl.textContent = 'Error';
-            metaStatusEl.textContent = 'Fallo';
-            metaContentTypeEl.textContent = 'N/A';
-            
-            appendLog('Error al realizar la petición: ' + error.message);
-            console.error('Error al realizar la petición:', error);
-            
-            // Mostrar la alerta en caso de cualquier error (CORS o Mixed Content)
-            showWarning();
+            setStatus('Error al obtener la lista de propietarios: ' + error.message, 'error');
+            console.error('Error fetching owners:', error);
           });
       }());
     </script>
