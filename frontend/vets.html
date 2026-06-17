@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Petclinic - Veterinarios</title>
+    <link rel="icon" href="./assets/favicon.png">
+    <link rel="stylesheet" href="./assets/site.css">
+    <style>
+      .table-container {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        box-shadow: var(--shadow);
+        overflow-x: auto;
+        margin-top: 24px;
+      }
+      .vets-table {
+        width: 100%;
+        border-collapse: collapse;
+        text-align: left;
+        font-size: 0.95rem;
+      }
+      .vets-table th, .vets-table td {
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--line);
+      }
+      .vets-table th {
+        background: var(--surface-soft);
+        color: var(--muted);
+        font-weight: 800;
+        text-transform: uppercase;
+        font-size: 0.78rem;
+        letter-spacing: 0.05em;
+      }
+      .vets-table tr:last-child td {
+        border-bottom: none;
+      }
+      .vets-table tr:hover td {
+        background: var(--surface-soft);
+      }
+      .specialty-badge {
+        display: inline-block;
+        background: var(--surface-soft);
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 4px 8px;
+        margin-right: 6px;
+        margin-bottom: 4px;
+        font-size: 0.82rem;
+        font-weight: 600;
+        color: var(--brand-dark);
+      }
+      .none-text {
+        color: var(--muted);
+        font-style: italic;
+      }
+      .status-box {
+        border-radius: 8px;
+        padding: 16px 20px;
+        margin-top: 24px;
+        font-size: 0.95rem;
+        font-weight: 500;
+        line-height: 1.5;
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="topbar" aria-label="Petclinic">
+      <a class="brand" href="./">
+        <img src="./assets/pets.png" alt="" width="76" height="56">
+        <span>
+          <strong>Spring Petclinic</strong>
+          <small>Frontend estático</small>
+        </span>
+      </a>
+      <nav aria-label="Acciones principales">
+        <a class="nav-link" href="./">Volver al Inicio</a>
+      </nav>
+    </header>
+
+    <main>
+      <section style="padding: 20px 0 10px 0;">
+        <p class="eyebrow">Nuestro Equipo</p>
+        <h1 style="font-size: clamp(2rem, 5vw, 3.5rem);">Veterinarios</h1>
+        <p style="color: var(--muted); margin-top: 8px;">Consulte el listado de nuestros veterinarios profesionales y sus especialidades.</p>
+      </section>
+
+      <div id="status-message" class="status-box"></div>
+
+      <div id="vets-list-container" class="table-container" style="display: none;">
+        <table class="vets-table">
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>Especialidades</th>
+            </tr>
+          </thead>
+          <tbody id="vets-table-body">
+            <!-- Dynamic content -->
+          </tbody>
+        </table>
+      </div>
+    </main>
+
+    <script src="./config.js"></script>
+    <script>
+      (function () {
+        "use strict";
+
+        const config = window.PETCLINIC_CONFIG || {};
+        const backendBaseUrl = normalizeBackendUrl(config.backendBaseUrl);
+
+        const containerEl = document.getElementById('vets-list-container');
+        const tableBodyEl = document.getElementById('vets-table-body');
+        const statusEl = document.getElementById('status-message');
+
+        function setStatus(text, type = 'info') {
+          statusEl.textContent = text;
+          statusEl.style.display = 'block';
+          if (type === 'error') {
+            statusEl.style.background = '#fee2e2';
+            statusEl.style.border = '1px solid #fecaca';
+            statusEl.style.color = '#b91c1c';
+          } else if (type === 'loading') {
+            statusEl.style.background = '#fef3c7';
+            statusEl.style.border = '1px solid #fde68a';
+            statusEl.style.color = '#b45309';
+          } else {
+            statusEl.style.background = '#f4f8f6';
+            statusEl.style.border = '1px solid #d8e2dc';
+            statusEl.style.color = '#5c6f65';
+          }
+        }
+
+        function normalizeBackendUrl(value) {
+          if (!value || typeof value !== 'string') {
+            return '';
+          }
+          const trimmed = value.trim();
+          if (!trimmed) {
+            return '';
+          }
+          if (trimmed === 'same-origin') {
+            return window.location.origin;
+          }
+          try {
+            const parsed = new URL(trimmed);
+            if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+              return '';
+            }
+            return parsed.href.replace(/\/+$/, '');
+          }
+          catch (error) {
+            return '';
+          }
+        }
+
+        if (!backendBaseUrl) {
+          setStatus('Backend no configurado. Defina FRONTEND_BACKEND_BASE_URL con una URL pública HTTPS o same-origin.', 'error');
+          return;
+        }
+
+        // URL del endpoint REST /vets
+        const targetUrl = backendBaseUrl.replace(/\/+$/, '') + '/vets';
+
+        // Si la página se carga sobre HTTPS y el backend es HTTP, advertir
+        if (window.location.protocol === 'https:' && targetUrl.startsWith('http' + '://')) {
+          setStatus('La página se sirve de forma segura por HTTPS, pero el backend configurado usa HTTP.', 'error');
+          return;
+        }
+
+        setStatus('Cargando veterinarios...', 'loading');
+
+        fetch(targetUrl)
+          .then(response => {
+            if (!response.ok) {
+              throw new Error("HTTP " + response.status + " " + response.statusText);
+            }
+            return response.json();
+          })
+          .then(data => {
+            const vetList = data && data.vetList;
+            if (!Array.isArray(vetList) || vetList.length === 0) {
+              setStatus('No se encontraron veterinarios.', 'info');
+              containerEl.style.display = 'none';
+              return;
+            }
+
+            statusEl.style.display = 'none';
+            tableBodyEl.innerHTML = '';
+
+            vetList.forEach(vet => {
+              const tr = document.createElement('tr');
+
+              // Name cell
+              const nameTd = document.createElement('td');
+              nameTd.textContent = (vet.firstName || '') + ' ' + (vet.lastName || '');
+              nameTd.style.fontWeight = '700';
+              tr.appendChild(nameTd);
+
+              // Specialties cell
+              const specialtiesTd = document.createElement('td');
+              if (Array.isArray(vet.specialties) && vet.specialties.length > 0) {
+                vet.specialties.forEach(spec => {
+                  const badge = document.createElement('span');
+                  badge.className = 'specialty-badge';
+                  badge.textContent = spec.name || '';
+                  specialtiesTd.appendChild(badge);
+                });
+              } else {
+                const noneSpan = document.createElement('span');
+                noneSpan.className = 'none-text';
+                noneSpan.textContent = 'ninguna';
+                specialtiesTd.appendChild(noneSpan);
+              }
+              tr.appendChild(specialtiesTd);
+
+              tableBodyEl.appendChild(tr);
+            });
+
+            containerEl.style.display = 'block';
+          })
+          .catch(error => {
+            setStatus('Error al obtener la lista de veterinarios: ' + error.message, 'error');
+            console.error('Error fetching vets:', error);
+          });
+      }());
+    </script>
+  </body>
+</html>
