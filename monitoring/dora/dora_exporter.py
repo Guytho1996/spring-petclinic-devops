@@ -21,7 +21,8 @@ import requests
 OWNER = os.getenv("DORA_GITHUB_OWNER", "Guytho1996")
 REPO = os.getenv("DORA_GITHUB_REPO", "spring-petclinic-devops")
 ENVIRONMENT = os.getenv("DORA_ENVIRONMENT", "production")
-BRANCH = os.getenv("DORA_BRANCH", "master")
+BRANCH = os.getenv("DORA_BRANCH", "master,main")
+ALLOWED_BRANCHES = [b.strip() for b in BRANCH.split(",")]
 PORT = int(os.getenv("DORA_EXPORTER_PORT", "9108"))
 CACHE_SECONDS = int(os.getenv("DORA_CACHE_SECONDS", "45"))
 INCIDENTS_FILE = Path(os.getenv("DORA_INCIDENTS_FILE", Path(__file__).with_name("incidents.json")))
@@ -246,7 +247,7 @@ def build_payload() -> dict[str, object]:
     for item in deployments_raw:
         if str(item.get("environment", "")).lower() != ENVIRONMENT.lower():
             continue
-        if item.get("ref") != BRANCH:
+        if item.get("ref") not in ALLOWED_BRANCHES:
             continue
         sha = str(item.get("sha", ""))
         created_at = parse_ts(item.get("created_at"))
