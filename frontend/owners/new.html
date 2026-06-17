@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Petclinic - Nuevo Propietario</title>
+    <link rel="icon" href="../assets/favicon.png">
+    <link rel="stylesheet" href="../assets/site.css">
+    <style>
+      .form-container {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 32px;
+        box-shadow: var(--shadow);
+        max-width: 600px;
+        margin-top: 24px;
+      }
+      .form-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 20px;
+        margin-bottom: 28px;
+      }
+      .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .form-label {
+        font-size: 0.82rem;
+        font-weight: 800;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+      .form-input {
+        min-height: 44px;
+        padding: 0 14px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        font-family: inherit;
+        font-size: 0.95rem;
+        background: var(--surface);
+        color: var(--ink);
+        width: 100%;
+      }
+      .form-input:focus {
+        outline: none;
+        border-color: var(--brand);
+      }
+      .form-input::placeholder {
+        color: #a0aec0;
+      }
+      .btn-container {
+        display: flex;
+        gap: 12px;
+      }
+      .status-box {
+        border-radius: 8px;
+        padding: 16px 20px;
+        margin-top: 20px;
+        font-size: 0.95rem;
+        font-weight: 500;
+        line-height: 1.5;
+        display: none;
+      }
+      .help-text {
+        font-size: 0.78rem;
+        color: var(--muted);
+        margin-top: 2px;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="topbar" aria-label="Petclinic">
+      <a class="brand" href="../">
+        <img src="../assets/pets.png" alt="" width="76" height="56">
+        <span>
+          <strong>Spring Petclinic</strong>
+          <small>Frontend estático</small>
+        </span>
+      </a>
+      <nav aria-label="Acciones principales">
+        <a class="nav-link" href="../">Volver al Inicio</a>
+        <a class="nav-link" href="./index.html">Buscar Propietarios</a>
+      </nav>
+    </header>
+
+    <main>
+      <section style="padding: 20px 0 10px 0;">
+        <p class="eyebrow">Gestión de Propietarios</p>
+        <h1 style="font-size: clamp(2rem, 5vw, 3.5rem);">Nuevo Propietario</h1>
+        <p style="color: var(--muted); margin-top: 8px;">Ingrese los datos del nuevo propietario para registrarlo en el sistema.</p>
+      </section>
+
+      <div class="form-container">
+        <form id="new-owner-form">
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="firstName" class="form-label">Nombre</label>
+              <input type="text" id="firstName" name="firstName" class="form-input" required maxlength="30" placeholder="Ej: George">
+            </div>
+
+            <div class="form-group">
+              <label for="lastName" class="form-label">Apellido</label>
+              <input type="text" id="lastName" name="lastName" class="form-input" required maxlength="30" placeholder="Ej: Franklin">
+            </div>
+
+            <div class="form-group">
+              <label for="address" class="form-label">Dirección</label>
+              <input type="text" id="address" name="address" class="form-input" required placeholder="Ej: 110 W. Liberty St.">
+            </div>
+
+            <div class="form-group">
+              <label for="city" class="form-label">Ciudad</label>
+              <input type="text" id="city" name="city" class="form-input" required placeholder="Ej: Madison">
+            </div>
+
+            <div class="form-group">
+              <label for="telephone" class="form-label">Teléfono</label>
+              <input type="tel" id="telephone" name="telephone" class="form-input" required pattern="\d{10}" placeholder="Ej: 6085551023">
+              <span class="help-text">Debe tener exactamente 10 dígitos numéricos.</span>
+            </div>
+          </div>
+
+          <div id="status-message" class="status-box"></div>
+
+          <div class="btn-container">
+            <button type="submit" class="command primary" id="submit-btn">Añadir Propietario</button>
+            <a class="command" href="./index.html">Cancelar</a>
+          </div>
+        </form>
+      </div>
+    </main>
+
+    <script>
+      (function () {
+        "use strict";
+
+        const form = document.getElementById('new-owner-form');
+        const statusEl = document.getElementById('status-message');
+        const submitBtn = document.getElementById('submit-btn');
+
+        function setStatus(text, type = 'info') {
+          statusEl.textContent = text;
+          statusEl.style.display = 'block';
+          if (type === 'error') {
+            statusEl.style.background = '#fee2e2';
+            statusEl.style.border = '1px solid #fecaca';
+            statusEl.style.color = '#b91c1c';
+          } else if (type === 'loading') {
+            statusEl.style.background = '#fef3c7';
+            statusEl.style.border = '1px solid #fde68a';
+            statusEl.style.color = '#b45309';
+          } else {
+            statusEl.style.background = '#f4f8f6';
+            statusEl.style.border = '1px solid #d8e2dc';
+            statusEl.style.color = '#5c6f65';
+          }
+        }
+
+        form.addEventListener('submit', function (event) {
+          event.preventDefault();
+
+          const firstName = document.getElementById('firstName').value.trim();
+          const lastName = document.getElementById('lastName').value.trim();
+          const address = document.getElementById('address').value.trim();
+          const city = document.getElementById('city').value.trim();
+          const telephone = document.getElementById('telephone').value.trim();
+
+          // Client-side validations (backup for HTML5)
+          if (!firstName || !lastName || !address || !city || !telephone) {
+            setStatus('Todos los campos son requeridos.', 'error');
+            return;
+          }
+          if (firstName.length > 30 || lastName.length > 30) {
+            setStatus('El nombre y apellido no deben exceder los 30 caracteres.', 'error');
+            return;
+          }
+          if (!/^\d{10}$/.test(telephone)) {
+            setStatus('El teléfono debe tener exactamente 10 dígitos.', 'error');
+            return;
+          }
+
+          submitBtn.disabled = true;
+          setStatus('Enviando datos...', 'loading');
+
+          // Encode body as application/x-www-form-urlencoded
+          const formData = new URLSearchParams();
+          formData.append('firstName', firstName);
+          formData.append('lastName', lastName);
+          formData.append('address', address);
+          formData.append('city', city);
+          formData.append('telephone', telephone);
+
+          // Submit to backend
+          fetch('/owners/new', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: formData
+          })
+          .then(response => {
+            // If the server redirects successfully, response.redirected is true
+            // or the response.url is different (e.g. /owners/{id})
+            if (response.redirected) {
+              window.location.href = response.url;
+              return;
+            }
+            if (response.ok) {
+              // Redirect to search list or detail page if redirect wasn't caught natively
+              if (response.url && response.url.includes('/owners/')) {
+                window.location.href = response.url;
+              } else {
+                setStatus('Propietario guardado con éxito. Redirigiendo...', 'info');
+                setTimeout(() => {
+                  window.location.href = './index.html';
+                }, 1500);
+              }
+            } else {
+              throw new Error('Código de estado: ' + response.status);
+            }
+          })
+          .catch(error => {
+            submitBtn.disabled = false;
+            setStatus('Error al guardar el propietario: ' + error.message, 'error');
+            console.error('Error saving owner:', error);
+          });
+        });
+      }());
+    </script>
+  </body>
+</html>

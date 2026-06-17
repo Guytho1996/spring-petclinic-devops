@@ -7,6 +7,7 @@ COPY frontend/docker-entrypoint.d/40-render-config.sh /docker-entrypoint.d/40-re
 COPY frontend/ssl/ /etc/nginx/ssl/
 COPY frontend/index.html /usr/share/nginx/html/index.html
 COPY frontend/owners/index.html /usr/share/nginx/html/owners/index.html
+COPY frontend/owners/new.html /usr/share/nginx/html/owners/new.html
 COPY frontend/vets.html /usr/share/nginx/html/vets.html
 COPY frontend/assets/site.css /usr/share/nginx/html/assets/site.css
 COPY frontend/assets/app.js /usr/share/nginx/html/assets/app.js
