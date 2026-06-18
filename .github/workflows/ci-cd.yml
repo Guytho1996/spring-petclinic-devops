@@ -357,3 +357,35 @@ jobs:
           FRONTEND_BACKEND_BASE_URL: same-origin
           SMOKE_TEST_URL: ${{ secrets.PROD_SMOKE_TEST_URL }}
         run: ./scripts/deploy-k8s-rolling-update.sh
+
+      - name: Deploy to Local K3s and Docker Compose on VM via SSH (Production)
+        env:
+          PROD_DEPLOY_HOST: ${{ secrets.PROD_DEPLOY_HOST }}
+          PROD_DEPLOY_PORT: ${{ secrets.PROD_DEPLOY_PORT || '22' }}
+          PROD_DEPLOY_USER: ${{ secrets.PROD_DEPLOY_USER }}
+          PROD_DEPLOY_PASSWORD: ${{ secrets.PROD_DEPLOY_PASSWORD }}
+          PROD_DEPLOY_PATH: ${{ secrets.PROD_DEPLOY_PATH }}
+        run: |
+          set -euo pipefail
+          sudo apt-get update && sudo apt-get install -y sshpass
+          port="${PROD_DEPLOY_PORT:-22}"
+          mkdir -p ~/.ssh
+          ssh-keyscan -p "$port" "$PROD_DEPLOY_HOST" >> ~/.ssh/known_hosts
+          
+          sshpass -p "$PROD_DEPLOY_PASSWORD" ssh -p "$port" "$PROD_DEPLOY_USER@$PROD_DEPLOY_HOST" \
+            "DEV_DEPLOY_PATH='$PROD_DEPLOY_PATH' GITHUB_REF_NAME='$GITHUB_REF_NAME' bash -s" <<'REMOTE'
+          set -euo pipefail
+          cd "$DEV_DEPLOY_PATH"
+          git fetch origin "$GITHUB_REF_NAME"
+          git checkout "$GITHUB_REF_NAME"
+          git pull --ff-only origin "$GITHUB_REF_NAME"
+          # Rebuild and update Docker Compose
+          docker compose build frontend
+          docker compose up -d frontend
+          # Import image to local K3s containerd
+          docker save spring-petclinic-devops-frontend:latest | sudo k3s ctr -n k8s.io images import -
+          # Rollout restart petclinic-frontend in local K3s
+          sudo KUBECONFIG=/etc/rancher/k3s/k3s.yaml kubectl rollout restart deployment/petclinic-frontend -n devops-lab
+          sudo KUBECONFIG=/etc/rancher/k3s/k3s.yaml kubectl rollout status deployment/petclinic-frontend -n devops-lab
+          REMOTE
+
